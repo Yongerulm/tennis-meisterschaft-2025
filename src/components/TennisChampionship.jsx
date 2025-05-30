@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Users, Trophy, Plus, Calendar, MapPin, User, AlertCircle, AlertTriangle, Settings, Edit, Trash2, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { Users, Trophy, Plus, Calendar, MapPin, User, AlertTriangle, Settings, Trash2, RefreshCw } from 'lucide-react';
 
 const TennisChampionship = () => {
   // State Management
@@ -11,7 +11,6 @@ const TennisChampionship = () => {
   const [matches, setMatches] = useState([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [editingMatch, setEditingMatch] = useState(null);
   const [validationErrors, setValidationErrors] = useState([]);
   const [nextMatchId, setNextMatchId] = useState(1000);
   
@@ -583,6 +582,12 @@ const TennisChampionship = () => {
               </tbody>
             </table>
           </div>
+          {playedMatches > 0 && (
+            <div className="text-xs text-gray-500 mt-2 space-y-1">
+              <p>🥇 1. Platz • 🥈 2. Platz • 🥉 3. Platz • 8 beste Spieler qualifiziert</p>
+              <p>📊 Punktesystem: Sieg = 2 Pkt, Niederlage = 1 Pkt (für Teilnahme)</p>
+            </div>
+          )}
         </div>
 
         <div>
@@ -1127,9 +1132,9 @@ const TennisChampionship = () => {
                     <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                       <h4 className="text-amber-800 font-medium mb-2">ℹ️ Demo-Modus:</h4>
                       <ul className="text-amber-700 text-sm space-y-1">
-                        <li>• Daten werden nur lokal gespeichert (nicht in Google Sheets)</li>
+                        <li>• Daten werden nur lokal gespeichert</li>
                         <li>• Beim Aktualisieren der Seite gehen Daten verloren</li>
-                        <li>• Für Produktionsumgebung: Google Apps Script URL anpassen</li>
+                        <li>• Für Produktionsumgebung: Backend-Integration erforderlich</li>
                       </ul>
                     </div>
                   </div>
