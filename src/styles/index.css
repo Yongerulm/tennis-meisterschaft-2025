@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+      monospace;
+  }
+}
+
+@layer components {
+  .tab-button {
+    @apply flex items-center space-x-2 px-4 md:px-6 py-2 md:py-3 rounded-full transition-all duration-300;
+  }
+  
+  .tab-button.active {
+    @apply bg-blue-500 text-white shadow-lg transform scale-105;
+  }
+  
+  .tab-button:not(.active) {
+    @apply bg-white text-gray-600 hover:bg-gray-50 shadow-md hover:shadow-lg;
+  }
+  
+  .group-card {
+    @apply transition-all duration-300 transform hover:-translate-y-1;
+  }
+  
+  .match-card {
+    @apply transition-all duration-200;
+  }
+  
+  .loading {
+    @apply opacity-70 pointer-events-none;
+  }
+}
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .bg-gradient-tennis {
+    background: linear-gradient(135deg, #f3f4f6 0%, #dbeafe 100%);
+  }
+}
