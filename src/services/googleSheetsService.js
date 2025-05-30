@@ -3,11 +3,9 @@
 
 import { useState } from 'react';
 
-// Import der direkten Config (umgeht Environment Variable Problem)
-import { GOOGLE_APPS_SCRIPT_URL } from '../config';
-
-// Fallback falls config.js nicht existiert
-const GOOGLE_SCRIPT_URL = GOOGLE_APPS_SCRIPT_URL || process.env.REACT_APP_GOOGLE_APPS_SCRIPT_URL || '';
+// Direkte URL (fallback auf Environment Variable)
+const GOOGLE_SCRIPT_URL = process.env.REACT_APP_GOOGLE_APPS_SCRIPT_URL || 
+  'https://script.google.com/macros/s/AKfycbz6GwiaXICrjaM_-h5D0D1GmK2TkNNicJ8KQf_gZXniTuVOmMvviPKokggCcDFzcEEZxQ/exec';
 
 // Basis API-Aufruf
 const callGoogleAppsScript = async (action, data = {}) => {
