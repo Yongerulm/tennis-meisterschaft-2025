@@ -1,169 +1,296 @@
-/**
- * 🔧 Einfacher Google Sheets Service - Build-sicher
- */
+// 🎾 Google Sheets Service für Tennis Tournament
+// Datei: src/services/googleSheetsService.js
 
-const GOOGLE_APPS_SCRIPT_URL = process.env.REACT_APP_GOOGLE_SCRIPT_URL || '';
+const GOOGLE_APPS_SCRIPT_URL = process.env.REACT_APP_GOOGLE_APPS_SCRIPT_URL || '';
 
-class GoogleSheetsService {
-  constructor() {
-    this.isOnline = navigator.onLine;
-    this.cache = new Map();
-    
-    // Listen for online/offline events
-    window.addEventListener('online', () => {
-      this.isOnline = true;
-    });
-    
-    window.addEventListener('offline', () => {
-      this.isOnline = false;
-    });
-  }
+// Basis API-Aufruf
+const callGoogleAppsScript = async (action, data = {}) => {
+  try {
+    if (!GOOGLE_APPS_SCRIPT_URL) {
+      console.warn('Google Apps Script URL nicht konfiguriert - verwende Demo-Modus');
+      return { status: 'offline', message: 'Demo-Modus aktiv' };
+    }
 
-  async makeRequest(action, data = null, method = 'GET') {
-    const url = `${GOOGLE_APPS_SCRIPT_URL}${method === 'GET' ? `?action=${action}` : ''}`;
-    
-    const options = {
-      method: method,
-      mode: 'cors',
-      cache: 'no-cache',
-      headers: {
-        'Content-Type': 'application/json',
-      }
+    const requestData = {
+      action,
+      ...data
     };
 
-    if (method === 'POST' && data) {
-      options.body = JSON.stringify({ action, ...data });
-    } else if (method === 'POST') {
-      options.body = JSON.stringify({ action });
+    console.log(`📡 Google Sheets API: ${action}`, requestData);
+
+    const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
     }
 
+    const result = await response.json();
+    
+    console.log(`✅ Google Sheets Response:`, result);
+    
+    return result;
+
+  } catch (error) {
+    console.error(`❌ Google Sheets Error (${action}):`, error);
+    return {
+      status: 'error',
+      message: error.message || 'Verbindungsfehler zu Google Sheets'
+    };
+  }
+};
+
+// Google Sheets Service Klasse
+class GoogleSheetsService {
+  constructor() {
+    this.isOnline = true;
+    this.lastSync = null;
+  }
+
+  // Backend-Verbindung testen
+  async testConnection() {
     try {
-      const response = await fetch(url, options);
+      const result = await callGoogleAppsScript('test');
+      this.isOnline = result.status === 'success';
+      return this.isOnline;
+    } catch (error) {
+      console.error('Connection test failed:', error);
+      this.isOnline = false;
+      return false;
+    }
+  }
+
+  // Alle Matches laden
+  async loadMatches() {
+    try {
+      const result = await callGoogleAppsScript('getMatches');
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (result.status === 'success') {
+        this.lastSync = new Date();
+        return {
+          success: true,
+          data: result.data || [],
+          message: result.message
+        };
+      } else if (result.status === 'offline') {
+        return {
+          success: false,
+          offline: true,
+          message: 'Google Sheets nicht verfügbar - Demo-Modus aktiv'
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || 'Fehler beim Laden der Matches'
+        };
       }
-      
-      const result = await response.json();
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      return result;
     } catch (error) {
-      console.error('API Request failed:', error);
-      throw error;
-    }
-  }
-
-  async getMatches() {
-    try {
-      const result = await this.makeRequest('getMatches');
-      return result.matches || [];
-    } catch (error) {
-      console.error('Failed to get matches:', error);
-      return [];
-    }
-  }
-
-  async addMatch(matchData) {
-    try {
-      const result = await this.makeRequest('addMatch', { data: matchData }, 'POST');
-      console.log('Match added successfully:', result);
-      return result;
-    } catch (error) {
-      console.error('Failed to add match:', error);
-      throw error;
-    }
-  }
-
-  async deleteMatch(id) {
-    try {
-      const result = await this.makeRequest('deleteMatch', { id }, 'POST');
-      console.log('Match deleted successfully:', result);
-      return result;
-    } catch (error) {
-      console.error('Failed to delete match:', error);
-      throw error;
-    }
-  }
-
-  async getPlayers() {
-    try {
-      const result = await this.makeRequest('getPlayers');
-      return result.players || [];
-    } catch (error) {
-      console.error('Failed to get players:', error);
-      return [];
-    }
-  }
-
-  async getGroups() {
-    try {
-      const result = await this.makeRequest('getGroups');
-      return result.groups || {};
-    } catch (error) {
-      console.error('Failed to get groups:', error);
       return {
-        A: ['Henning', 'Julia', 'Fabi', 'Michael'],
-        B: ['Markus', 'Thomas', 'Gunter', 'Bernd'],
-        C: ['Sascha', 'Herbert', 'Sven', 'Jose']
+        success: false,
+        message: 'Verbindungsfehler: ' + error.message,
+        offline: true
       };
     }
   }
 
-  async healthCheck() {
+  // Match speichern
+  async saveMatch(match) {
     try {
-      const result = await this.makeRequest('getMatches');
-      return { 
-        status: 'healthy', 
-        online: this.isOnline,
-        lastCheck: new Date().toISOString(),
-        matchCount: result.matches?.length || 0
-      };
+      const result = await callGoogleAppsScript('addMatch', { match });
+      
+      if (result.status === 'success') {
+        this.lastSync = new Date();
+        return {
+          success: true,
+          data: result.data,
+          message: result.message
+        };
+      } else if (result.status === 'offline') {
+        return {
+          success: false,
+          offline: true,
+          message: 'Google Sheets nicht verfügbar - Match nur lokal gespeichert'
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || 'Fehler beim Speichern des Matches'
+        };
+      }
     } catch (error) {
-      return { 
-        status: 'error', 
-        online: this.isOnline,
-        error: error.message,
-        lastCheck: new Date().toISOString()
+      return {
+        success: false,
+        message: 'Verbindungsfehler: ' + error.message,
+        offline: true
       };
     }
   }
 
+  // Match löschen
+  async deleteMatch(matchId) {
+    try {
+      const result = await callGoogleAppsScript('deleteMatch', { matchId });
+      
+      if (result.status === 'success') {
+        this.lastSync = new Date();
+        return {
+          success: true,
+          message: result.message
+        };
+      } else if (result.status === 'offline') {
+        return {
+          success: false,
+          offline: true,
+          message: 'Google Sheets nicht verfügbar - Match nur lokal gelöscht'
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || 'Fehler beim Löschen des Matches'
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Verbindungsfehler: ' + error.message,
+        offline: true
+      };
+    }
+  }
+
+  // Sync-Status abrufen
   getSyncStatus() {
     return {
-      online: this.isOnline,
-      configured: !!GOOGLE_APPS_SCRIPT_URL && GOOGLE_APPS_SCRIPT_URL !== ''
+      isOnline: this.isOnline,
+      lastSync: this.lastSync,
+      hasConnection: !!GOOGLE_APPS_SCRIPT_URL
     };
   }
 }
 
-// Singleton export
+// Singleton-Instanz erstellen
 const googleSheetsService = new GoogleSheetsService();
-export default googleSheetsService;
 
-// Utility functions
-export const formatMatchForAPI = (match) => {
+// React Hook für Google Sheets
+export const useGoogleSheets = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [syncStatus, setSyncStatus] = useState(googleSheetsService.getSyncStatus());
+
+  // Verbindung testen
+  const testConnection = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const isOnline = await googleSheetsService.testConnection();
+      setSyncStatus(googleSheetsService.getSyncStatus());
+      return isOnline;
+    } catch (err) {
+      setError(err.message);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Matches laden
+  const loadMatches = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await googleSheetsService.loadMatches();
+      setSyncStatus(googleSheetsService.getSyncStatus());
+      
+      if (!result.success && !result.offline) {
+        setError(result.message);
+      }
+      
+      return result;
+    } catch (err) {
+      setError(err.message);
+      return {
+        success: false,
+        message: err.message,
+        offline: true
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Match speichern
+  const saveMatch = async (match) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await googleSheetsService.saveMatch(match);
+      setSyncStatus(googleSheetsService.getSyncStatus());
+      
+      if (!result.success && !result.offline) {
+        setError(result.message);
+      }
+      
+      return result;
+    } catch (err) {
+      setError(err.message);
+      return {
+        success: false,
+        message: err.message,
+        offline: true
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Match löschen
+  const deleteMatch = async (matchId) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await googleSheetsService.deleteMatch(matchId);
+      setSyncStatus(googleSheetsService.getSyncStatus());
+      
+      if (!result.success && !result.offline) {
+        setError(result.message);
+      }
+      
+      return result;
+    } catch (err) {
+      setError(err.message);
+      return {
+        success: false,
+        message: err.message,
+        offline: true
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
-    group: match.group,
-    phase: match.phase || 'group',
-    player1: match.player1,
-    player2: match.player2,
-    set1: {
-      player1: parseInt(match.set1Player1) || 0,
-      player2: parseInt(match.set1Player2) || 0
-    },
-    set2: {
-      player1: parseInt(match.set2Player1) || 0,
-      player2: parseInt(match.set2Player2) || 0
-    },
-    tiebreak: (match.tiebreakPlayer1 || match.tiebreakPlayer2) ? {
-      player1: parseInt(match.tiebreakPlayer1) || 0,
-      player2: parseInt(match.tiebreakPlayer2) || 0
-    } : null,
-    winner: match.winner,
-    status: match.status || 'completed'
+    isLoading,
+    error,
+    syncStatus,
+    testConnection,
+    loadMatches,
+    saveMatch,
+    deleteMatch
   };
 };
+
+// Named Exports
+export { googleSheetsService };
+export default googleSheetsService;
+
+// React State Import für Hook
+import { useState } from 'react';
