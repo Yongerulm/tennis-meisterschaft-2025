@@ -1,12 +1,18 @@
 // 🎾 Google Sheets Service für Tennis Tournament
 // Datei: src/services/googleSheetsService.js
 
-const GOOGLE_APPS_SCRIPT_URL = process.env.REACT_APP_GOOGLE_APPS_SCRIPT_URL || '';
+import { useState } from 'react';
+
+// Import der direkten Config (umgeht Environment Variable Problem)
+import { GOOGLE_APPS_SCRIPT_URL } from '../config';
+
+// Fallback falls config.js nicht existiert
+const GOOGLE_SCRIPT_URL = GOOGLE_APPS_SCRIPT_URL || process.env.REACT_APP_GOOGLE_APPS_SCRIPT_URL || '';
 
 // Basis API-Aufruf
 const callGoogleAppsScript = async (action, data = {}) => {
   try {
-    if (!GOOGLE_APPS_SCRIPT_URL) {
+    if (!GOOGLE_SCRIPT_URL) {
       console.warn('Google Apps Script URL nicht konfiguriert - verwende Demo-Modus');
       return { status: 'offline', message: 'Demo-Modus aktiv' };
     }
@@ -18,7 +24,7 @@ const callGoogleAppsScript = async (action, data = {}) => {
 
     console.log(`📡 Google Sheets API: ${action}`, requestData);
 
-    const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -168,7 +174,7 @@ class GoogleSheetsService {
     return {
       isOnline: this.isOnline,
       lastSync: this.lastSync,
-      hasConnection: !!GOOGLE_APPS_SCRIPT_URL
+      hasConnection: !!GOOGLE_SCRIPT_URL
     };
   }
 }
@@ -291,6 +297,3 @@ export const useGoogleSheets = () => {
 // Named Exports
 export { googleSheetsService };
 export default googleSheetsService;
-
-// React State Import für Hook
-import { useState } from 'react';
