@@ -4,18 +4,15 @@
   "description": "Tennis Vereinsmeisterschaft 2025 TV Reicheneck - Turnierverwaltung",
   "private": true,
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-scripts": "5.0.1",
     "lucide-react": "^0.263.1",
-    "tailwindcss": "^3.3.0",
-    "autoprefixer": "^10.4.14",
-    "postcss": "^8.4.24"
+    "web-vitals": "^4.2.4"
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "npm run build:css && react-scripts build",
-    "build:css": "tailwindcss -i ./src/styles/index.css -o ./src/styles/tailwind.css --watch=false",
+    "build": "CI=false react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -37,7 +34,11 @@
       "last 1 safari version"
     ]
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "tailwindcss": "^3.4.16",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.0"
+  },
   "keywords": [
     "tennis",
     "tournament",
@@ -46,5 +47,12 @@
     "tv-reicheneck"
   ],
   "author": "TV Reicheneck",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "resolutions": {
+    "react-error-overlay": "6.0.9"
+  }
 }
