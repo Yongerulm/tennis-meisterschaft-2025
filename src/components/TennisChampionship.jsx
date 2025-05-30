@@ -1,7 +1,19 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Users, Trophy, Plus, Calendar, MapPin, User, AlertTriangle, Settings, Trash2, RefreshCw } from 'lucide-react';
+import { Users, Trophy, Plus, Calendar, MapPin, User, AlertTriangle, Settings, Trash2, RefreshCw, Wifi, WifiOff, Cloud, CloudOff } from 'lucide-react';
+import { useGoogleSheets } from '../services/googleSheetsService';
 
 const TennisChampionship = () => {
+  // Google Sheets Hook
+  const { 
+    isLoading: isSyncing, 
+    error: syncError, 
+    syncStatus, 
+    loadMatches: loadGoogleMatches, 
+    saveMatch: saveGoogleMatch, 
+    deleteMatch: deleteGoogleMatch,
+    testConnection 
+  } = useGoogleSheets();
+
   // State Management
   const [activeTab, setActiveTab] = useState('overview');
   const [loginPin, setLoginPin] = useState('');
@@ -13,6 +25,8 @@ const TennisChampionship = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [validationErrors, setValidationErrors] = useState([]);
   const [nextMatchId, setNextMatchId] = useState(1000);
+  const [syncMessage, setSyncMessage] = useState('');
+  const [isOnlineMode, setIsOnlineMode] = useState(false);
   
   // New Match Form State
   const [newMatch, setNewMatch] = useState({
@@ -65,10 +79,60 @@ const TennisChampionship = () => {
     }
   ];
 
-  // Initialize with demo data
+  // Initialize with data loading
   useEffect(() => {
-    setMatches(demoMatches);
-    setNextMatchId(3);
+    const initializeData = async () => {
+      console.log('🎾 Initialisiere Tennis App...');
+      
+      // Teste Google Sheets Verbindung
+      if (syncStatus.hasConnection) {
+        try {
+          setIsLoading(true);
+          setSyncMessage('Teste Google Sheets Verbindung...');
+          
+          const isOnline = await testConnection();
+          setIsOnlineMode(isOnline);
+          
+          if (isOnline) {
+            setSyncMessage('Lade Matches von Google Sheets...');
+            const result = await loadGoogleMatches();
+            
+            if (result.success && result.data) {
+              setMatches(result.data);
+              const maxId = result.data.length > 0 
+                ? Math.max(...result.data.map(m => m.id)) 
+                : 0;
+              setNextMatchId(Math.max(maxId + 1, 1000));
+              setSyncMessage('✅ Daten erfolgreich von Google Sheets geladen');
+              console.log('✅ Google Sheets Daten geladen:', result.data.length, 'Matches');
+            } else {
+              throw new Error(result.message || 'Laden fehlgeschlagen');
+            }
+          } else {
+            throw new Error('Keine Verbindung zu Google Sheets');
+          }
+        } catch (error) {
+          console.warn('⚠️ Google Sheets nicht verfügbar, verwende Demo-Daten:', error);
+          setIsOnlineMode(false);
+          setMatches(demoMatches);
+          setNextMatchId(3);
+          setSyncMessage('⚠️ Demo-Modus: Daten werden nur lokal gespeichert');
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        console.log('📱 Demo-Modus: Keine Google Sheets URL konfiguriert');
+        setMatches(demoMatches);
+        setNextMatchId(3);
+        setSyncMessage('📱 Demo-Modus: Keine Google Sheets Integration');
+        setIsOnlineMode(false);
+      }
+      
+      // Sync-Message nach 5 Sekunden ausblenden
+      setTimeout(() => setSyncMessage(''), 5000);
+    };
+
+    initializeData();
   }, []);
 
   // Tennis Score Validation
@@ -357,7 +421,7 @@ const TennisChampionship = () => {
     setValidationErrors([]);
   };
 
-  // Add new match
+  // Add new match with Google Sheets sync
   const addNewMatch = async () => {
     if (!newMatch.player1 || !newMatch.player2) {
       alert('Bitte wählen Sie beide Spieler aus.');
@@ -404,8 +468,28 @@ const TennisChampionship = () => {
         timestamp: new Date().toISOString()
       };
 
+      // Lokales Update
       setMatches(currentMatches => [...currentMatches, match]);
       setNextMatchId(nextMatchId + 1);
+      
+      // Google Sheets Sync
+      let syncResultMessage = '';
+      if (isOnlineMode) {
+        try {
+          const syncResult = await saveGoogleMatch(match);
+          if (syncResult.success) {
+            syncResultMessage = '✅ In Google Sheets gespeichert';
+          } else if (syncResult.offline) {
+            syncResultMessage = '⚠️ Nur lokal gespeichert (Google Sheets offline)';
+          } else {
+            syncResultMessage = '❌ Google Sheets Fehler: ' + syncResult.message;
+          }
+        } catch (error) {
+          syncResultMessage = '⚠️ Nur lokal gespeichert (Verbindungsfehler)';
+        }
+      } else {
+        syncResultMessage = '📱 Demo-Modus: Nur lokal gespeichert';
+      }
       
       const phaseText = match.phase === 'group' ? `Gruppe ${match.group}` : 
                        match.phase === 'semifinal' ? 'Endrunde' : 'Finale';
@@ -418,7 +502,7 @@ const TennisChampionship = () => {
         `Satz 2: ${match.set2.player1}:${match.set2.player2}` +
         (match.tiebreak ? `\nTiebreak: ${match.tiebreak.player1}:${match.tiebreak.player2}` : '') +
         `\n\n🏆 Sieger: ${match.winner}\n\n` +
-        `ℹ️ Hinweis: Daten werden nur lokal gespeichert (Demo-Modus)`
+        `${syncResultMessage}`
       );
       setShowSuccessModal(true);
       resetForm();
@@ -430,8 +514,8 @@ const TennisChampionship = () => {
     }
   };
 
-  // Delete match (admin only)
-  const deleteMatch = (matchId) => {
+  // Delete match with Google Sheets sync
+  const deleteMatch = async (matchId) => {
     if (!isAdminMode) {
       alert('Nur im Admin-Modus verfügbar!');
       return;
@@ -443,13 +527,33 @@ const TennisChampionship = () => {
     setIsLoading(true);
     
     try {
+      // Lokales Update
       setMatches(currentMatches => {
         const updatedMatches = currentMatches.filter(m => m.id !== matchId);
         console.log('Match gelöscht, neue Liste:', updatedMatches);
         return updatedMatches;
       });
       
-      setSuccessMessage('Match erfolgreich gelöscht!');
+      // Google Sheets Sync
+      let syncResultMessage = '';
+      if (isOnlineMode) {
+        try {
+          const syncResult = await deleteGoogleMatch(matchId);
+          if (syncResult.success) {
+            syncResultMessage = '✅ Aus Google Sheets gelöscht';
+          } else if (syncResult.offline) {
+            syncResultMessage = '⚠️ Nur lokal gelöscht (Google Sheets offline)';
+          } else {
+            syncResultMessage = '❌ Google Sheets Fehler: ' + syncResult.message;
+          }
+        } catch (error) {
+          syncResultMessage = '⚠️ Nur lokal gelöscht (Verbindungsfehler)';
+        }
+      } else {
+        syncResultMessage = '📱 Demo-Modus: Nur lokal gelöscht';
+      }
+      
+      setSuccessMessage(`Match erfolgreich gelöscht!\n\n${syncResultMessage}`);
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Fehler beim Löschen:', error);
@@ -457,6 +561,43 @@ const TennisChampionship = () => {
     } finally {
       setTimeout(() => setIsLoading(false), 500);
     }
+  };
+
+  // Sync Status Component
+  const SyncStatusBadge = () => {
+    if (!syncStatus.hasConnection) {
+      return (
+        <div className="flex items-center space-x-2 px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-600">
+          <CloudOff size={14} />
+          <span>Demo-Modus</span>
+        </div>
+      );
+    }
+
+    if (isSyncing) {
+      return (
+        <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 rounded-full text-xs text-blue-700">
+          <RefreshCw size={14} className="animate-spin" />
+          <span>Synchronisiert...</span>
+        </div>
+      );
+    }
+
+    if (isOnlineMode && syncStatus.isOnline) {
+      return (
+        <div className="flex items-center space-x-2 px-3 py-1 bg-green-100 rounded-full text-xs text-green-700">
+          <Cloud size={14} />
+          <span>Google Sheets</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center space-x-2 px-3 py-1 bg-yellow-100 rounded-full text-xs text-yellow-700">
+        <WifiOff size={14} />
+        <span>Offline</span>
+      </div>
+    );
   };
 
   // Components
@@ -707,9 +848,12 @@ const TennisChampionship = () => {
 
     return (
       <div className="bg-white rounded-2xl shadow-lg p-4 md:p-6">
-        <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-6 flex items-center">
-          <Settings className="mr-2 text-blue-500" size={20} />
-          Alle Matches verwalten ({allMatches.length})
+        <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-6 flex items-center justify-between">
+          <div className="flex items-center">
+            <Settings className="mr-2 text-blue-500" size={20} />
+            Alle Matches verwalten ({allMatches.length})
+          </div>
+          <SyncStatusBadge />
         </h3>
         
         {allMatches.length === 0 ? (
@@ -812,6 +956,15 @@ const TennisChampionship = () => {
                 Die Endrunde spielen 8 Spieler. Jeweils die 2 Besten aus den 3 Gruppen plus die 2 besten 3ten aus allen Gruppen.
                 Gespielt wird im Best-of-3-Format mit Match-Tiebreak bei 1:1 Sätzen.
               </p>
+              
+              {/* Sync Status Message */}
+              {syncMessage && (
+                <div className="mt-4 max-w-2xl mx-auto">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-blue-700 text-sm">{syncMessage}</p>
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* Gruppenphase */}
@@ -955,9 +1108,12 @@ const TennisChampionship = () => {
                 {/* Match-Eingabe */}
                 <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
                   <div className="mb-6 flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      {isAdminMode ? 'Admin-Modus' : 'Standard-Modus'}
-                    </h3>
+                    <div className="flex items-center space-x-3">
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        {isAdminMode ? 'Admin-Modus' : 'Standard-Modus'}
+                      </h3>
+                      <SyncStatusBadge />
+                    </div>
                     <button
                       onClick={() => {
                         setIsAuthenticated(false);
@@ -1099,14 +1255,14 @@ const TennisChampionship = () => {
 
                     <button
                       onClick={addNewMatch}
-                      disabled={!newMatch.player1 || !newMatch.player2 || validationErrors.length > 0 || isLoading}
+                      disabled={!newMatch.player1 || !newMatch.player2 || validationErrors.length > 0 || isLoading || isSyncing}
                       className={`w-full py-4 rounded-xl font-medium flex items-center justify-center space-x-2 transition-all duration-200 ${
-                        (!newMatch.player1 || !newMatch.player2 || validationErrors.length > 0 || isLoading)
+                        (!newMatch.player1 || !newMatch.player2 || validationErrors.length > 0 || isLoading || isSyncing)
                           ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                           : 'btn-success bg-green-500 text-white hover:bg-green-600'
                       }`}
                     >
-                      {isLoading ? (
+                      {(isLoading || isSyncing) ? (
                         <>
                           <RefreshCw size={20} className="animate-spin" />
                           <span>Speichert...</span>
@@ -1129,11 +1285,23 @@ const TennisChampionship = () => {
                     </div>
 
                     <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                      <h4 className="text-amber-800 font-medium mb-2">ℹ️ Demo-Modus:</h4>
+                      <h4 className="text-amber-800 font-medium mb-2">
+                        {isOnlineMode ? '☁️ Google Sheets Integration:' : 'ℹ️ Demo-Modus:'}
+                      </h4>
                       <ul className="text-amber-700 text-sm space-y-1">
-                        <li>• Daten werden nur lokal gespeichert</li>
-                        <li>• Beim Aktualisieren der Seite gehen Daten verloren</li>
-                        <li>• Für Produktionsumgebung: Backend-Integration erforderlich</li>
+                        {isOnlineMode ? (
+                          <>
+                            <li>• Daten werden automatisch in Google Sheets gespeichert</li>
+                            <li>• Echtzeit-Synchronisation zwischen allen Geräten</li>
+                            <li>• Fallback auf lokalen Speicher bei Verbindungsproblemen</li>
+                          </>
+                        ) : (
+                          <>
+                            <li>• Daten werden nur lokal gespeichert</li>
+                            <li>• Beim Aktualisieren der Seite gehen Daten verloren</li>
+                            <li>• Google Sheets Integration nicht verfügbar</li>
+                          </>
+                        )}
                       </ul>
                     </div>
                   </div>
