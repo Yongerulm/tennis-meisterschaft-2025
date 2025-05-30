@@ -1,34 +1,12 @@
 [build]
   publish = "build"
-  command = "npm ci && npm run build"
+  command = "npm run build"
 
 [build.environment]
-  NODE_VERSION = "18.20.4"
-  NPM_VERSION = "10.8.2"
+  NODE_VERSION = "18"
   CI = "false"
-  GENERATE_SOURCEMAP = "false"
-  DISABLE_ESLINT_PLUGIN = "true"
-  SKIP_PREFLIGHT_CHECK = "true"
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-[build.processing]
-  skip_processing = false
-
-[build.processing.css]
-  bundle = true
-  minify = true
-
-[build.processing.js]
-  bundle = true
-  minify = true
-
-[build.processing.html]
-  pretty_urls = true
-
-# Ignore certain warnings that could cause build failures
-[build.ignore]
-  command = "echo 'Build not ignored'"
