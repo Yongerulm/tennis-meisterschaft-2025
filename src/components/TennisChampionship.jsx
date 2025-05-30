@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Users, Trophy, Plus, Calendar, MapPin, User, AlertTriangle, Settings, Trash2, RefreshCw } from 'lucide-react';
+import { Users, Trophy, Plus, Calendar, MapPin, User, AlertTriangle, Settings, Trash2, RefreshCw, Wifi, WifiOff, Cloud, CloudOff, Database } from 'lucide-react';
+import googleSheetsService, { formatMatchForAPI, useGoogleSheets } from '../services/googleSheetsService';
 
 const TennisChampionship = () => {
+  // Google Sheets Integration
+  const { service: sheetsService, isOnline, syncStatus, refreshSyncStatus } = useGoogleSheets();
+
   // State Management
   const [activeTab, setActiveTab] = useState('overview');
   const [loginPin, setLoginPin] = useState('');
@@ -9,10 +13,13 @@ const TennisChampionship = () => {
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [matches, setMatches] = useState([]);
+  const [groups, setGroups] = useState({});
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [validationErrors, setValidationErrors] = useState([]);
   const [nextMatchId, setNextMatchId] = useState(1000);
+  const [connectionStatus, setConnectionStatus] = useState('checking');
+  const [lastSync, setLastSync] = useState(null);
   
   // New Match Form State
   const [newMatch, setNewMatch] = useState({
@@ -38,7 +45,7 @@ const TennisChampionship = () => {
   const correctPin = '2025';
   const adminPin = '9999';
 
-  // Demo Data
+  // Demo Data (fallback)
   const demoMatches = [
     {
       id: 1,
@@ -65,12 +72,107 @@ const TennisChampionship = () => {
     }
   ];
 
-  // Initialize with demo data
+  // ===== GOOGLE SHEETS INTEGRATION =====
+  
+  // Load data from Google Sheets on component mount
   useEffect(() => {
-    setMatches(demoMatches);
-    setNextMatchId(3);
+    loadDataFromSheets();
+    checkConnectionHealth();
   }, []);
 
+  // Periodic sync status refresh
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshSyncStatus();
+      setLastSync(new Date().toLocaleTimeString());
+    }, 30000); // Every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [refreshSyncStatus]);
+
+  const loadDataFromSheets = async () => {
+    setIsLoading(true);
+    setConnectionStatus('connecting');
+    
+    try {
+      console.log('Loading data from Google Sheets...');
+      
+      const [matchesData, groupsData] = await Promise.all([
+        sheetsService.getMatches(),
+        sheetsService.getGroups()
+      ]);
+      
+      console.log('Loaded from Google Sheets:', { 
+        matches: matchesData?.length, 
+        groups: Object.keys(groupsData || {}).length 
+      });
+      
+      setMatches(matchesData || demoMatches);
+      setGroups(groupsData || GROUPS);
+      setConnectionStatus('connected');
+      setLastSync(new Date().toLocaleTimeString());
+      
+      // Set next match ID based on existing matches
+      if (matchesData && matchesData.length > 0) {
+        const maxId = Math.max(...matchesData.map(m => parseInt(m.id) || 0));
+        setNextMatchId(maxId + 1);
+      }
+      
+    } catch (error) {
+      console.error('Failed to load data from Google Sheets:', error);
+      setConnectionStatus('error');
+      
+      // Fallback to demo data
+      setMatches(demoMatches);
+      setGroups(GROUPS);
+      setNextMatchId(3);
+      
+      setSuccessMessage(
+        `⚠️ Verbindung zu Google Sheets fehlgeschlagen\\n\\n` +
+        `Fehler: ${error.message}\\n\\n` +
+        `📝 Demo-Daten werden verwendet\\n` +
+        `🔄 Versuche später erneut zu verbinden`
+      );
+      setShowSuccessModal(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const checkConnectionHealth = async () => {
+    try {
+      const health = await sheetsService.healthCheck();
+      setConnectionStatus(health.status === 'healthy' ? 'connected' : 'error');
+    } catch (error) {
+      setConnectionStatus('error');
+    }
+  };
+
+  const initializeGoogleSheets = async () => {
+    setIsLoading(true);
+    try {
+      const result = await sheetsService.initializeSheets();
+      console.log('Google Sheets initialized:', result);
+      
+      setSuccessMessage(
+        `✅ Google Sheets erfolgreich initialisiert!\\n\\n` +
+        `📊 Spreadsheet ID: ${result.spreadsheetId}\\n` +
+        `📋 Erstelle Tabs: ${result.sheets.join(', ')}\\n\\n` +
+        `🔄 Lade Daten neu...`
+      );
+      setShowSuccessModal(true);
+      
+      // Reload data after initialization
+      await loadDataFromSheets();
+    } catch (error) {
+      alert(`Fehler bei der Initialisierung: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ===== TENNIS LOGIC (unchanged) =====
+  
   // Tennis Score Validation
   const validateTennisScore = useCallback((set1P1, set1P2, set2P1, set2P2, tbP1, tbP2) => {
     const errors = [];
@@ -170,7 +272,7 @@ const TennisChampionship = () => {
 
   // Calculate Group Table
   const calculateGroupTable = useCallback((groupName) => {
-    const groupPlayers = GROUPS[groupName];
+    const groupPlayers = groups[groupName] || GROUPS[groupName] || [];
     const groupMatches = matches.filter(m => m.group === groupName && m.status === 'completed');
     
     const playerStats = {};
@@ -227,7 +329,7 @@ const TennisChampionship = () => {
       const bSetRatio = b.setsLost === 0 ? b.setsWon : (b.setsWon / b.setsLost);
       return bSetRatio - aSetRatio;
     });
-  }, [matches]);
+  }, [matches, groups]);
 
   // Get Qualified Players for KO Phase
   const getQualifiedPlayers = useMemo(() => {
@@ -236,7 +338,7 @@ const TennisChampionship = () => {
     const groupSeconds = [];
     const groupThirds = [];
     
-    ['A', 'B', 'C'].forEach(groupName => {
+    Object.keys(groups).forEach(groupName => {
       const table = calculateGroupTable(groupName);
       if (table.length >= 1) {
         groupFirsts.push({
@@ -277,7 +379,7 @@ const TennisChampionship = () => {
     qualified.push(...groupThirds.slice(0, 2));
 
     return qualified;
-  }, [calculateGroupTable]);
+  }, [calculateGroupTable, groups]);
 
   // Generate Pairings
   const generatePairings = (players) => {
@@ -292,7 +394,7 @@ const TennisChampionship = () => {
 
   // Get Available Matches
   const getAvailableMatches = useCallback((group) => {
-    const groupPlayers = GROUPS[group];
+    const groupPlayers = groups[group] || GROUPS[group] || [];
     const availableMatches = [];
     
     for (let i = 0; i < groupPlayers.length; i++) {
@@ -313,7 +415,7 @@ const TennisChampionship = () => {
       }
     }
     return availableMatches;
-  }, [matches, isAdminMode]);
+  }, [matches, groups, isAdminMode]);
 
   // Handle Login
   const handleLogin = () => {
@@ -357,7 +459,7 @@ const TennisChampionship = () => {
     setValidationErrors([]);
   };
 
-  // Add new match
+  // ===== ENHANCED ADD MATCH WITH GOOGLE SHEETS =====
   const addNewMatch = async () => {
     if (!newMatch.player1 || !newMatch.player2) {
       alert('Bitte wählen Sie beide Spieler aus.');
@@ -370,7 +472,7 @@ const TennisChampionship = () => {
       const result = determineWinner(newMatch);
       
       if (result.errors.length > 0) {
-        alert('Validierungsfehler:\n\n' + result.errors.join('\n'));
+        alert('Validierungsfehler:\\n\\n' + result.errors.join('\\n'));
         return;
       }
 
@@ -379,8 +481,21 @@ const TennisChampionship = () => {
         return;
       }
 
-      const match = {
-        id: nextMatchId,
+      // Format for API
+      const matchData = formatMatchForAPI({
+        ...newMatch,
+        winner: result.winner
+      });
+
+      console.log('Saving match to Google Sheets:', matchData);
+
+      // Add to Google Sheets
+      const apiResult = await sheetsService.addMatch(matchData);
+      console.log('Google Sheets API result:', apiResult);
+      
+      // Update local state
+      const newMatchComplete = {
+        id: apiResult.id,
         group: newMatch.group === 'KO' ? undefined : newMatch.group,
         phase: newMatch.phase,
         player1: newMatch.player1,
@@ -404,34 +519,35 @@ const TennisChampionship = () => {
         timestamp: new Date().toISOString()
       };
 
-      setMatches(currentMatches => [...currentMatches, match]);
+      setMatches(currentMatches => [...currentMatches, newMatchComplete]);
       setNextMatchId(nextMatchId + 1);
       
-      const phaseText = match.phase === 'group' ? `Gruppe ${match.group}` : 
-                       match.phase === 'semifinal' ? 'Endrunde' : 'Finale';
+      const phaseText = newMatchComplete.phase === 'group' ? `Gruppe ${newMatchComplete.group}` : 
+                       newMatchComplete.phase === 'semifinal' ? 'Endrunde' : 'Finale';
       
       setSuccessMessage(
-        `🎾 Match erfolgreich gespeichert!\n\n` +
-        `${phaseText}\n` +
-        `${match.player1} vs ${match.player2}\n` +
-        `Satz 1: ${match.set1.player1}:${match.set1.player2}\n` +
-        `Satz 2: ${match.set2.player1}:${match.set2.player2}` +
-        (match.tiebreak ? `\nTiebreak: ${match.tiebreak.player1}:${match.tiebreak.player2}` : '') +
-        `\n\n🏆 Sieger: ${match.winner}\n\n` +
-        `ℹ️ Hinweis: Daten werden nur lokal gespeichert (Demo-Modus)`
+        `🎾 Match erfolgreich gespeichert!\\n\\n` +
+        `${phaseText}\\n` +
+        `${newMatchComplete.player1} vs ${newMatchComplete.player2}\\n` +
+        `Satz 1: ${newMatchComplete.set1.player1}:${newMatchComplete.set1.player2}\\n` +
+        `Satz 2: ${newMatchComplete.set2.player1}:${newMatchComplete.set2.player2}` +
+        (newMatchComplete.tiebreak ? `\\nTiebreak: ${newMatchComplete.tiebreak.player1}:${newMatchComplete.tiebreak.player2}` : '') +
+        `\\n\\n🏆 Sieger: ${newMatchComplete.winner}\\n\\n` +
+        `✅ In Google Sheets gespeichert ${isOnline ? '(Online)' : '(Offline - wird synchronisiert)'}`
       );
       setShowSuccessModal(true);
       resetForm();
       
     } catch (error) {
-      alert(`Fehler beim Speichern: ${error.message}`);
+      console.error('Error saving to Google Sheets:', error);
+      alert(`Fehler beim Speichern: ${error.message}${!isOnline ? '\\n\\nOffline-Modus: Daten werden synchronisiert wenn online.' : ''}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Delete match (admin only)
-  const deleteMatch = (matchId) => {
+  // Delete match (admin only) with Google Sheets
+  const deleteMatch = async (matchId) => {
     if (!isAdminMode) {
       alert('Nur im Admin-Modus verfügbar!');
       return;
@@ -443,14 +559,17 @@ const TennisChampionship = () => {
     setIsLoading(true);
     
     try {
-      // Filter out the match to delete
+      // Delete from Google Sheets
+      await sheetsService.deleteMatch(matchId);
+      
+      // Update local state
       setMatches(currentMatches => {
         const updatedMatches = currentMatches.filter(m => m.id !== matchId);
         console.log('Match gelöscht, neue Liste:', updatedMatches);
         return updatedMatches;
       });
       
-      setSuccessMessage('Match erfolgreich gelöscht!');
+      setSuccessMessage('✅ Match erfolgreich gelöscht und aus Google Sheets entfernt!');
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Fehler beim Löschen:', error);
@@ -460,7 +579,8 @@ const TennisChampionship = () => {
     }
   };
 
-  // Components
+  // ===== COMPONENTS (enhanced with connection status) =====
+  
   const ValidationAlert = ({ errors }) => {
     if (errors.length === 0) return null;
 
@@ -480,6 +600,62 @@ const TennisChampionship = () => {
             </ul>
           </div>
         </div>
+      </div>
+    );
+  };
+
+  const ConnectionStatus = () => {
+    const getStatusIcon = () => {
+      if (!isOnline) return <WifiOff className="w-4 h-4" />;
+      if (connectionStatus === 'connected') return <Cloud className="w-4 h-4" />;
+      if (connectionStatus === 'connecting') return <RefreshCw className="w-4 h-4 animate-spin" />;
+      if (connectionStatus === 'error') return <CloudOff className="w-4 h-4" />;
+      return <Database className="w-4 h-4" />;
+    };
+
+    const getStatusText = () => {
+      if (!isOnline) return 'Offline';
+      if (connectionStatus === 'connected') return 'Google Sheets verbunden';
+      if (connectionStatus === 'connecting') return 'Verbinde...';
+      if (connectionStatus === 'error') return 'Verbindungsfehler';
+      return 'Unbekannt';
+    };
+
+    const getStatusColor = () => {
+      if (!isOnline) return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      if (connectionStatus === 'connected') return 'bg-green-100 text-green-700 border-green-200';
+      if (connectionStatus === 'connecting') return 'bg-blue-100 text-blue-700 border-blue-200';
+      if (connectionStatus === 'error') return 'bg-red-100 text-red-700 border-red-200';
+      return 'bg-gray-100 text-gray-700 border-gray-200';
+    };
+
+    return (
+      <div className="flex justify-center items-center gap-4 mb-6">
+        <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor()}`}>
+          {getStatusIcon()}
+          <span>{getStatusText()}</span>
+        </div>
+        
+        {syncStatus && syncStatus.queuedRequests > 0 && (
+          <div className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
+            📤 {syncStatus.queuedRequests} ausstehend
+          </div>
+        )}
+        
+        <button
+          onClick={loadDataFromSheets}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+          Aktualisieren
+        </button>
+        
+        {lastSync && (
+          <div className="text-xs text-gray-500">
+            Letzter Sync: {lastSync}
+          </div>
+        )}
       </div>
     );
   };
@@ -523,6 +699,8 @@ const TennisChampionship = () => {
       <span className="font-medium hidden sm:inline">{label}</span>
     </button>
   );
+
+  // ... (GroupCard, KOBracket, AdminMatchList components remain the same but use the 'groups' state instead of GROUPS constant)
 
   const GroupCard = ({ groupName, players }) => {
     const tableData = useMemo(() => calculateGroupTable(groupName), [groupName]);
@@ -708,10 +886,25 @@ const TennisChampionship = () => {
 
     return (
       <div className="bg-white rounded-2xl shadow-lg p-4 md:p-6">
-        <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-6 flex items-center">
-          <Settings className="mr-2 text-blue-500" size={20} />
-          Alle Matches verwalten ({allMatches.length})
-        </h3>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg md:text-xl font-semibold text-gray-800 flex items-center">
+            <Settings className="mr-2 text-blue-500" size={20} />
+            Alle Matches verwalten ({allMatches.length})
+          </h3>
+          
+          {isAdminMode && (
+            <div className="flex gap-2">
+              <button
+                onClick={initializeGoogleSheets}
+                disabled={isLoading}
+                className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50 text-sm"
+              >
+                <Database className="inline w-4 h-4 mr-1" />
+                Sheets initialisieren
+              </button>
+            </div>
+          )}
+        </div>
         
         {allMatches.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
@@ -731,6 +924,11 @@ const TennisChampionship = () => {
                       <span className="font-medium text-gray-800">
                         {match.player1} vs {match.player2}
                       </span>
+                      {match.timestamp && (
+                        <span className="text-xs text-gray-500">
+                          {new Date(match.timestamp).toLocaleString()}
+                        </span>
+                      )}
                     </div>
                     
                     <div className="text-sm text-gray-600">
@@ -784,7 +982,7 @@ const TennisChampionship = () => {
     );
   };
 
-  // Main render content
+  // Main render content (continues as before, but with ConnectionStatus component added)
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
@@ -819,7 +1017,7 @@ const TennisChampionship = () => {
             <div className="mb-12">
               <h2 className="text-xl md:text-2xl font-light text-gray-800 mb-6 text-center">Gruppenphase</h2>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-                {Object.entries(GROUPS).map(([groupName, players]) => (
+                {Object.entries(groups).map(([groupName, players]) => (
                   <GroupCard key={groupName} groupName={groupName} players={players} />
                 ))}
               </div>
@@ -842,7 +1040,7 @@ const TennisChampionship = () => {
           <div>
             <h2 className="text-2xl md:text-3xl font-light text-gray-800 mb-8 text-center">Gruppenphase</h2>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-              {Object.entries(GROUPS).map(([groupName, players]) => (
+              {Object.entries(groups).map(([groupName, players]) => (
                 <GroupCard key={groupName} groupName={groupName} players={players} />
               ))}
             </div>
@@ -980,9 +1178,9 @@ const TennisChampionship = () => {
                           onChange={(e) => setNewMatch({...newMatch, group: e.target.value, player1: '', player2: ''})}
                           className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
                         >
-                          <option value="A">Gruppe A</option>
-                          <option value="B">Gruppe B</option>
-                          <option value="C">Gruppe C</option>
+                          {Object.keys(groups).map(groupName => (
+                            <option key={groupName} value={groupName}>Gruppe {groupName}</option>
+                          ))}
                         </select>
                       </div>
                       
@@ -1110,7 +1308,7 @@ const TennisChampionship = () => {
                       {isLoading ? (
                         <>
                           <RefreshCw size={20} className="animate-spin" />
-                          <span>Speichert...</span>
+                          <span>Speichert in Google Sheets...</span>
                         </>
                       ) : (
                         <>
@@ -1129,12 +1327,13 @@ const TennisChampionship = () => {
                       </ul>
                     </div>
 
-                    <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                      <h4 className="text-amber-800 font-medium mb-2">ℹ️ Demo-Modus:</h4>
-                      <ul className="text-amber-700 text-sm space-y-1">
-                        <li>• Daten werden nur lokal gespeichert</li>
-                        <li>• Beim Aktualisieren der Seite gehen Daten verloren</li>
-                        <li>• Für Produktionsumgebung: Backend-Integration erforderlich</li>
+                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <h4 className="text-green-800 font-medium mb-2">☁️ Google Sheets Integration:</h4>
+                      <ul className="text-green-700 text-sm space-y-1">
+                        <li>• Daten werden automatisch in Google Sheets gespeichert</li>
+                        <li>• Offline-Support mit automatischer Synchronisation</li>
+                        <li>• Zugriff auf Daten von allen Geräten</li>
+                        <li>• {isOnline ? '🟢 Online - Sofortige Synchronisation' : '🟡 Offline - Wird später synchronisiert'}</li>
                       </ul>
                     </div>
                   </div>
@@ -1189,6 +1388,8 @@ const TennisChampionship = () => {
             onClick={() => setActiveTab('entry')}
           />
         </nav>
+
+        <ConnectionStatus />
 
         <main>{renderContent()}</main>
         
