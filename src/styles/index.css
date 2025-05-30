@@ -1,4 +1,4 @@
-/* 🏆 PERFECT VERSION - Ultra-Premium Tennis App CSS */
+/* 🏆 PERFECT VERSION - Build-sichere CSS (ohne @layer) */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
@@ -85,11 +85,6 @@
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 
-  /* Glass Effects */
-  --glass-bg: rgba(255, 255, 255, 0.25);
-  --glass-border: rgba(255, 255, 255, 0.18);
-  --glass-backdrop: blur(16px);
-
   /* Animations */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -146,6 +141,11 @@ body::before {
 @keyframes backgroundFloat {
   0%, 100% { transform: scale(1) rotate(0deg); }
   50% { transform: scale(1.05) rotate(1deg); }
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
 }
 
 /* ===== CONTAINER ===== */
@@ -670,10 +670,12 @@ button:disabled {
 .w-16 { width: var(--spacing-16); }
 .w-6 { width: var(--spacing-6); }
 .w-3 { width: var(--spacing-3); }
+.w-4 { width: 1rem; }
 .w-8 { width: var(--spacing-8); }
 .h-16 { height: var(--spacing-16); }
 .h-6 { height: var(--spacing-6); }
 .h-3 { height: var(--spacing-3); }
+.h-4 { height: 1rem; }
 .h-8 { height: var(--spacing-8); }
 
 .max-w-md { max-width: 28rem; }
