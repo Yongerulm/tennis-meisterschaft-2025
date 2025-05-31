@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Users, Trophy, Plus, Calendar, MapPin, User, AlertTriangle, Settings, Trash2, RefreshCw, Wifi, WifiOff, Cloud, CloudOff } from 'lucide-react';
-import { useGoogleSheets } from '../services/googleSheetsService';
+import { useAirtable } from '../services/airtableService';
 
 const TennisChampionship = () => {
-  // Google Sheets Hook
-  const { 
-    isLoading: isSyncing, 
-    error: syncError, 
-    syncStatus, 
-    loadMatches: loadGoogleMatches, 
-    saveMatch: saveGoogleMatch, 
-    deleteMatch: deleteGoogleMatch,
-    testConnection 
-  } = useGoogleSheets();
+  // Airtable Hook
+const { 
+  isLoading: isSyncing, 
+  error: syncError, 
+  syncStatus, 
+  loadMatches: loadAirtableMatches, 
+  saveMatch: saveAirtableMatch, 
+  deleteMatch: deleteAirtableMatch,
+  testConnection 
+} = useAirtable();
 
   // State Management
   const [activeTab, setActiveTab] = useState('overview');
@@ -95,7 +95,7 @@ const TennisChampionship = () => {
           
           if (isOnline) {
             setSyncMessage('Lade Matches von Google Sheets...');
-            const result = await loadGoogleMatches();
+            const result = await loadAirtableMatches();
             
             if (result.success && result.data) {
               setMatches(result.data);
@@ -476,7 +476,7 @@ const TennisChampionship = () => {
       let syncResultMessage = '';
       if (isOnlineMode) {
         try {
-          const syncResult = await saveGoogleMatch(match);
+          const syncResult = await saveAirtableMatch()
           if (syncResult.success) {
             syncResultMessage = '✅ In Google Sheets gespeichert';
           } else if (syncResult.offline) {
@@ -538,7 +538,7 @@ const TennisChampionship = () => {
       let syncResultMessage = '';
       if (isOnlineMode) {
         try {
-          const syncResult = await deleteGoogleMatch(matchId);
+          const syncResult = await deleteAirtableMatch()
           if (syncResult.success) {
             syncResultMessage = '✅ Aus Google Sheets gelöscht';
           } else if (syncResult.offline) {
