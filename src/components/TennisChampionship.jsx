@@ -218,7 +218,7 @@ const TennisChampionship = () => {
           }),
           Sieger: matchData.winner,
           Status: matchData.status,
-          Date: matchData.timestamp
+          Date: new Date().toISOString().split('T')[0] // YYYY-MM-DD Format
         }
       };
 
