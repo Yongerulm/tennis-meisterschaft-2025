@@ -153,27 +153,27 @@ const TennisChampionship = () => {
       
       const airtableMatches = response.records.map(record => ({
         id: record.fields.ID,
-        group: record.fields.Group,
+        group: record.fields.Gruppe,
         phase: record.fields.Phase,
-        player1: record.fields.Player1,
-        player2: record.fields.Player2,
+        player1: record.fields.Spieler1,
+        player2: record.fields.Spieler2,
         set1: {
-          player1: record.fields.Set1Player1 || 0,
-          player2: record.fields.Set1Player2 || 0
+          player1: record.fields.Satz1_Spieler1 || 0,
+          player2: record.fields.Satz1_Spieler2 || 0
         },
         set2: {
-          player1: record.fields.Set2Player1 || 0,
-          player2: record.fields.Set2Player2 || 0
+          player1: record.fields.Satz2_Spieler1 || 0,
+          player2: record.fields.Satz2_Spieler2 || 0
         },
-        ...(record.fields.TiebreakPlayer1 && {
+        ...(record.fields.Tiebreak_Spieler1 && {
           tiebreak: {
-            player1: record.fields.TiebreakPlayer1,
-            player2: record.fields.TiebreakPlayer2
+            player1: record.fields.Tiebreak_Spieler1,
+            player2: record.fields.Tiebreak_Spieler2
           }
         }),
-        winner: record.fields.Winner,
+        winner: record.fields.Sieger,
         status: record.fields.Status,
-        timestamp: record.fields.Timestamp,
+        timestamp: record.fields.Date,
         airtableId: record.id
       }));
 
@@ -204,21 +204,21 @@ const TennisChampionship = () => {
       const airtableData = {
         fields: {
           ID: matchData.id,
-          Group: matchData.group,
+          Gruppe: matchData.group,
           Phase: matchData.phase,
-          Player1: matchData.player1,
-          Player2: matchData.player2,
-          Set1Player1: matchData.set1.player1,
-          Set1Player2: matchData.set1.player2,
-          Set2Player1: matchData.set2.player1,
-          Set2Player2: matchData.set2.player2,
+          Spieler1: matchData.player1,
+          Spieler2: matchData.player2,
+          Satz1_Spieler1: matchData.set1.player1,
+          Satz1_Spieler2: matchData.set1.player2,
+          Satz2_Spieler1: matchData.set2.player1,
+          Satz2_Spieler2: matchData.set2.player2,
           ...(matchData.tiebreak && {
-            TiebreakPlayer1: matchData.tiebreak.player1,
-            TiebreakPlayer2: matchData.tiebreak.player2
+            Tiebreak_Spieler1: matchData.tiebreak.player1,
+            Tiebreak_Spieler2: matchData.tiebreak.player2
           }),
-          Winner: matchData.winner,
+          Sieger: matchData.winner,
           Status: matchData.status,
-          Timestamp: matchData.timestamp
+          Date: matchData.timestamp
         }
       };
 
