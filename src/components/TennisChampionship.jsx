@@ -1,19 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Users, Trophy, Plus, Calendar, MapPin, User, AlertTriangle, Settings, Trash2, RefreshCw, Wifi, WifiOff, Cloud, CloudOff } from 'lucide-react';
-import { useAirtable } from '../services/airtableService';
+import { Users, Trophy, Plus, Calendar, MapPin, User, AlertTriangle, Settings, Trash2, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 
 const TennisChampionship = () => {
-  // Airtable Hook
-const { 
-  isLoading: isSyncing, 
-  error: syncError, 
-  syncStatus, 
-  loadMatches: loadAirtableMatches, 
-  saveMatch: saveAirtableMatch, 
-  deleteMatch: deleteAirtableMatch,
-  testConnection 
-} = useAirtable();
-
   // State Management
   const [activeTab, setActiveTab] = useState('overview');
   const [loginPin, setLoginPin] = useState('');
@@ -25,8 +13,8 @@ const {
   const [successMessage, setSuccessMessage] = useState('');
   const [validationErrors, setValidationErrors] = useState([]);
   const [nextMatchId, setNextMatchId] = useState(1000);
-  const [syncMessage, setSyncMessage] = useState('');
-  const [isOnlineMode, setIsOnlineMode] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState('testing');
+  const [errorMessage, setErrorMessage] = useState('');
   
   // New Match Form State
   const [newMatch, setNewMatch] = useState({
@@ -52,7 +40,26 @@ const {
   const correctPin = '2025';
   const adminPin = '9999';
 
-  // Demo Data
+  // Airtable Configuration - Safe environment variable access
+  const getEnvVar = (key, fallback = '') => {
+    try {
+      return (typeof process !== 'undefined' && process.env && process.env[key]) || fallback;
+    } catch (error) {
+      console.warn(`Environment variable ${key} not available, using fallback`);
+      return fallback;
+    }
+  };
+
+  const AIRTABLE_CONFIG = {
+    baseId: getEnvVar('REACT_APP_AIRTABLE_BASE_ID', 'app5txy8Rr2jz0R0i'),
+    tableName: getEnvVar('REACT_APP_AIRTABLE_TABLE_NAME', 'Matches'),
+    apiKey: getEnvVar('REACT_APP_AIRTABLE_API_KEY', 'pata8AegwOwmtid9t.f9bbcc2ac3248d3712e9443d9df066c7fcc922683c05401b6028a5892a5b25e9'),
+    get apiUrl() {
+      return `https://api.airtable.com/v0/${this.baseId}/${this.tableName}`;
+    }
+  };
+
+  // Demo Data Fallback
   const demoMatches = [
     {
       id: 1,
@@ -64,7 +71,8 @@ const {
       set2: { player1: 3, player2: 6 },
       tiebreak: { player1: 10, player2: 7 },
       winner: 'Henning',
-      status: 'completed'
+      status: 'completed',
+      timestamp: new Date().toISOString()
     },
     {
       id: 2,
@@ -75,64 +83,185 @@ const {
       set1: { player1: 6, player2: 2 },
       set2: { player1: 6, player2: 4 },
       winner: 'Fabi',
-      status: 'completed'
+      status: 'completed',
+      timestamp: new Date().toISOString()
     }
   ];
 
-  // Initialize with data loading
-  useEffect(() => {
-    const initializeData = async () => {
-      console.log('🎾 Initialisiere Tennis App...');
-      
-      // Teste Google Sheets Verbindung
-      if (syncStatus.hasConnection) {
-        try {
-          setIsLoading(true);
-          setSyncMessage('Teste Google Sheets Verbindung...');
-          
-          const isOnline = await testConnection();
-          setIsOnlineMode(isOnline);
-          
-          if (isOnline) {
-            setSyncMessage('Lade Matches von Google Sheets...');
-            const result = await loadAirtableMatches();
-            
-            if (result.success && result.data) {
-              setMatches(result.data);
-              const maxId = result.data.length > 0 
-                ? Math.max(...result.data.map(m => m.id)) 
-                : 0;
-              setNextMatchId(Math.max(maxId + 1, 1000));
-              setSyncMessage('✅ Daten erfolgreich von Google Sheets geladen');
-              console.log('✅ Google Sheets Daten geladen:', result.data.length, 'Matches');
-            } else {
-              throw new Error(result.message || 'Laden fehlgeschlagen');
-            }
-          } else {
-            throw new Error('Keine Verbindung zu Google Sheets');
-          }
-        } catch (error) {
-          console.warn('⚠️ Google Sheets nicht verfügbar, verwende Demo-Daten:', error);
-          setIsOnlineMode(false);
-          setMatches(demoMatches);
-          setNextMatchId(3);
-          setSyncMessage('⚠️ Demo-Modus: Daten werden nur lokal gespeichert');
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        console.log('📱 Demo-Modus: Keine Google Sheets URL konfiguriert');
-        setMatches(demoMatches);
-        setNextMatchId(3);
-        setSyncMessage('📱 Demo-Modus: Keine Google Sheets Integration');
-        setIsOnlineMode(false);
+  // Airtable API Functions - ONLY Airtable!
+  const airtableRequest = async (method, endpoint = '', data = null) => {
+    if (!AIRTABLE_CONFIG.apiKey) {
+      throw new Error('Airtable API Key nicht konfiguriert');
+    }
+
+    const url = endpoint ? `${AIRTABLE_CONFIG.apiUrl}/${endpoint}` : AIRTABLE_CONFIG.apiUrl;
+    
+    const config = {
+      method,
+      headers: {
+        'Authorization': `Bearer ${AIRTABLE_CONFIG.apiKey}`,
+        'Content-Type': 'application/json'
       }
-      
-      // Sync-Message nach 5 Sekunden ausblenden
-      setTimeout(() => setSyncMessage(''), 5000);
     };
 
-    initializeData();
+    if (data) {
+      config.body = JSON.stringify(data);
+    }
+
+    const response = await fetch(url, config);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Airtable ${method} Error: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  };
+
+  // Test Airtable Connection - ONLY Airtable!
+  const testAirtableConnection = async () => {
+    try {
+      console.log('🎾 Initialisiere Tennis App...');
+      console.log('🔄 Teste Airtable Verbindung...');
+      setConnectionStatus('testing');
+      
+      await airtableRequest('GET');
+      
+      console.log('✅ Airtable Verbindung erfolgreich!');
+      setConnectionStatus('connected');
+      setErrorMessage('');
+      return true;
+    } catch (error) {
+      console.error('❌ Airtable Verbindung fehlgeschlagen:', error);
+      console.log('⚠️ Verwende Demo-Modus aufgrund von Verbindungsproblemen');
+      setConnectionStatus('disconnected');
+      setErrorMessage(error.message);
+      return false;
+    }
+  };
+
+  // Load Matches from Airtable - ONLY Airtable!
+  const loadMatches = async () => {
+    try {
+      if (connectionStatus !== 'connected') {
+        console.log('⚠️ Verwende Demo-Daten - Airtable nicht verbunden');
+        setMatches(demoMatches);
+        return;
+      }
+
+      const response = await airtableRequest('GET');
+      
+      const airtableMatches = response.records.map(record => ({
+        id: record.fields.id,
+        group: record.fields.group,
+        phase: record.fields.phase,
+        player1: record.fields.player1,
+        player2: record.fields.player2,
+        set1: {
+          player1: record.fields.set1Player1 || 0,
+          player2: record.fields.set1Player2 || 0
+        },
+        set2: {
+          player1: record.fields.set2Player1 || 0,
+          player2: record.fields.set2Player2 || 0
+        },
+        ...(record.fields.tiebreakPlayer1 && {
+          tiebreak: {
+            player1: record.fields.tiebreakPlayer1,
+            player2: record.fields.tiebreakPlayer2
+          }
+        }),
+        winner: record.fields.winner,
+        status: record.fields.status,
+        timestamp: record.fields.timestamp,
+        airtableId: record.id
+      }));
+
+      setMatches(airtableMatches);
+      
+      if (airtableMatches.length > 0) {
+        const maxId = Math.max(...airtableMatches.map(m => m.id));
+        setNextMatchId(maxId + 1);
+      }
+      
+      console.log(`📊 ${airtableMatches.length} Matches von Airtable geladen`);
+      
+    } catch (error) {
+      console.error('❌ Fehler beim Laden der Matches:', error);
+      setMatches(demoMatches);
+      setErrorMessage(`Laden fehlgeschlagen: ${error.message}`);
+    }
+  };
+
+  // Save Match to Airtable - ONLY Airtable!
+  const saveMatchToAirtable = async (matchData) => {
+    if (connectionStatus !== 'connected') {
+      console.log('⚠️ Demo-Modus: Match nur lokal gespeichert');
+      return matchData;
+    }
+
+    try {
+      const airtableData = {
+        fields: {
+          id: matchData.id,
+          group: matchData.group,
+          phase: matchData.phase,
+          player1: matchData.player1,
+          player2: matchData.player2,
+          set1Player1: matchData.set1.player1,
+          set1Player2: matchData.set1.player2,
+          set2Player1: matchData.set2.player1,
+          set2Player2: matchData.set2.player2,
+          ...(matchData.tiebreak && {
+            tiebreakPlayer1: matchData.tiebreak.player1,
+            tiebreakPlayer2: matchData.tiebreak.player2
+          }),
+          winner: matchData.winner,
+          status: matchData.status,
+          timestamp: matchData.timestamp
+        }
+      };
+
+      const response = await airtableRequest('POST', '', airtableData);
+      
+      console.log('✅ Match erfolgreich in Airtable gespeichert');
+      return {
+        ...matchData,
+        airtableId: response.id
+      };
+      
+    } catch (error) {
+      console.error('❌ Fehler beim Speichern in Airtable:', error);
+      throw new Error(`Airtable Speichern fehlgeschlagen: ${error.message}`);
+    }
+  };
+
+  // Delete Match from Airtable - ONLY Airtable!
+  const deleteMatchFromAirtable = async (match) => {
+    if (connectionStatus !== 'connected' || !match.airtableId) {
+      console.log('⚠️ Demo-Modus: Match nur lokal gelöscht');
+      return;
+    }
+
+    try {
+      await airtableRequest('DELETE', match.airtableId);
+      console.log('✅ Match aus Airtable gelöscht');
+    } catch (error) {
+      console.error('❌ Fehler beim Löschen aus Airtable:', error);
+      throw new Error(`Airtable Löschen fehlgeschlagen: ${error.message}`);
+    }
+  };
+
+  // Initialize Connection and Load Data - ONLY Airtable!
+  useEffect(() => {
+    const initializeApp = async () => {
+      console.log('🎾 Tennis App wird gestartet...');
+      const connected = await testAirtableConnection();
+      await loadMatches();
+      console.log('🚀 Tennis App erfolgreich geladen!');
+    };
+
+    initializeApp();
   }, []);
 
   // Tennis Score Validation
@@ -421,7 +550,7 @@ const {
     setValidationErrors([]);
   };
 
-  // Add new match with Google Sheets sync
+  // Add new match
   const addNewMatch = async () => {
     if (!newMatch.player1 || !newMatch.player2) {
       alert('Bitte wählen Sie beide Spieler aus.');
@@ -468,31 +597,19 @@ const {
         timestamp: new Date().toISOString()
       };
 
-      // Lokales Update
-      setMatches(currentMatches => [...currentMatches, match]);
-      setNextMatchId(nextMatchId + 1);
+      // Save to Airtable first
+      const savedMatch = await saveMatchToAirtable(match);
       
-      // Google Sheets Sync
-      let syncResultMessage = '';
-      if (isOnlineMode) {
-        try {
-          const syncResult = await saveAirtableMatch()
-          if (syncResult.success) {
-            syncResultMessage = '✅ In Google Sheets gespeichert';
-          } else if (syncResult.offline) {
-            syncResultMessage = '⚠️ Nur lokal gespeichert (Google Sheets offline)';
-          } else {
-            syncResultMessage = '❌ Google Sheets Fehler: ' + syncResult.message;
-          }
-        } catch (error) {
-          syncResultMessage = '⚠️ Nur lokal gespeichert (Verbindungsfehler)';
-        }
-      } else {
-        syncResultMessage = '📱 Demo-Modus: Nur lokal gespeichert';
-      }
+      // Update local state
+      setMatches(currentMatches => [...currentMatches, savedMatch]);
+      setNextMatchId(nextMatchId + 1);
       
       const phaseText = match.phase === 'group' ? `Gruppe ${match.group}` : 
                        match.phase === 'semifinal' ? 'Endrunde' : 'Finale';
+      
+      const statusText = connectionStatus === 'connected' ? 
+        '✅ In Airtable gespeichert!' : 
+        '⚠️ Nur lokal gespeichert (Demo-Modus)';
       
       setSuccessMessage(
         `🎾 Match erfolgreich gespeichert!\n\n` +
@@ -501,25 +618,28 @@ const {
         `Satz 1: ${match.set1.player1}:${match.set1.player2}\n` +
         `Satz 2: ${match.set2.player1}:${match.set2.player2}` +
         (match.tiebreak ? `\nTiebreak: ${match.tiebreak.player1}:${match.tiebreak.player2}` : '') +
-        `\n\n🏆 Sieger: ${match.winner}\n\n` +
-        `${syncResultMessage}`
+        `\n\n🏆 Sieger: ${match.winner}\n\n${statusText}`
       );
       setShowSuccessModal(true);
       resetForm();
       
     } catch (error) {
+      console.error('Fehler beim Speichern:', error);
       alert(`Fehler beim Speichern: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Delete match with Google Sheets sync
+  // Delete match
   const deleteMatch = async (matchId) => {
     if (!isAdminMode) {
       alert('Nur im Admin-Modus verfügbar!');
       return;
     }
+
+    const matchToDelete = matches.find(m => m.id === matchId);
+    if (!matchToDelete) return;
 
     const confirmed = window.confirm('Möchten Sie dieses Match wirklich löschen?');
     if (!confirmed) return;
@@ -527,33 +647,21 @@ const {
     setIsLoading(true);
     
     try {
-      // Lokales Update
+      // Delete from Airtable first
+      await deleteMatchFromAirtable(matchToDelete);
+      
+      // Update local state
       setMatches(currentMatches => {
         const updatedMatches = currentMatches.filter(m => m.id !== matchId);
         console.log('Match gelöscht, neue Liste:', updatedMatches);
         return updatedMatches;
       });
       
-      // Google Sheets Sync
-      let syncResultMessage = '';
-      if (isOnlineMode) {
-        try {
-          const syncResult = await deleteAirtableMatch()
-          if (syncResult.success) {
-            syncResultMessage = '✅ Aus Google Sheets gelöscht';
-          } else if (syncResult.offline) {
-            syncResultMessage = '⚠️ Nur lokal gelöscht (Google Sheets offline)';
-          } else {
-            syncResultMessage = '❌ Google Sheets Fehler: ' + syncResult.message;
-          }
-        } catch (error) {
-          syncResultMessage = '⚠️ Nur lokal gelöscht (Verbindungsfehler)';
-        }
-      } else {
-        syncResultMessage = '📱 Demo-Modus: Nur lokal gelöscht';
-      }
+      const statusText = connectionStatus === 'connected' ? 
+        'Match aus Airtable gelöscht!' : 
+        'Match lokal gelöscht (Demo-Modus)';
       
-      setSuccessMessage(`Match erfolgreich gelöscht!\n\n${syncResultMessage}`);
+      setSuccessMessage(statusText);
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Fehler beim Löschen:', error);
@@ -563,49 +671,90 @@ const {
     }
   };
 
-  // Sync Status Component
-  const SyncStatusBadge = () => {
-    if (!syncStatus.hasConnection) {
-      return (
-        <div className="flex items-center space-x-2 px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-600">
-          <CloudOff size={14} />
-          <span>Demo-Modus</span>
-        </div>
-      );
+  // Retry Connection
+  const retryConnection = async () => {
+    setIsLoading(true);
+    await testAirtableConnection();
+    if (connectionStatus === 'connected') {
+      await loadMatches();
     }
-
-    if (isSyncing) {
-      return (
-        <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 rounded-full text-xs text-blue-700">
-          <RefreshCw size={14} className="animate-spin" />
-          <span>Synchronisiert...</span>
-        </div>
-      );
-    }
-
-    if (isOnlineMode && syncStatus.isOnline) {
-      return (
-        <div className="flex items-center space-x-2 px-3 py-1 bg-green-100 rounded-full text-xs text-green-700">
-          <Cloud size={14} />
-          <span>Google Sheets</span>
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex items-center space-x-2 px-3 py-1 bg-yellow-100 rounded-full text-xs text-yellow-700">
-        <WifiOff size={14} />
-        <span>Offline</span>
-      </div>
-    );
+    setIsLoading(false);
   };
 
   // Components
+  const ConnectionStatusCard = () => (
+    <div className="mb-6 p-4 bg-white rounded-xl shadow-lg border">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-medium text-gray-700 flex items-center">
+          {connectionStatus === 'connected' && <Wifi className="w-4 h-4 text-green-500 mr-2" />}
+          {connectionStatus === 'disconnected' && <WifiOff className="w-4 h-4 text-red-500 mr-2" />}
+          {connectionStatus === 'testing' && <RefreshCw className="w-4 h-4 text-blue-500 mr-2 animate-spin" />}
+          Airtable Status
+        </h3>
+        <button
+          onClick={retryConnection}
+          disabled={isLoading || connectionStatus === 'testing'}
+          className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors disabled:opacity-50"
+        >
+          Erneut versuchen
+        </button>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+        <div className="flex items-center justify-between">
+          <span className="text-gray-600">Verbindung:</span>
+          <span className={`font-medium ${
+            connectionStatus === 'connected' ? 'text-green-600' : 
+            connectionStatus === 'disconnected' ? 'text-red-600' : 'text-blue-600'
+          }`}>
+            {connectionStatus === 'connected' ? 'Verbunden' : 
+             connectionStatus === 'disconnected' ? 'Getrennt' : 'Teste...'}
+          </span>
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <span className="text-gray-600">Modus:</span>
+          <span className={`font-medium ${
+            connectionStatus === 'connected' ? 'text-green-600' : 'text-yellow-600'
+          }`}>
+            {connectionStatus === 'connected' ? 'Produktiv' : 'Demo'}
+          </span>
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <span className="text-gray-600">Matches:</span>
+          <span className="font-medium text-gray-800">{matches.length}</span>
+        </div>
+      </div>
+
+      {errorMessage && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <h4 className="text-red-800 font-medium mb-1">Verbindungsfehler:</h4>
+          <p className="text-red-700 text-sm">{errorMessage}</p>
+          <p className="text-red-600 text-xs mt-2">
+            💡 Überprüfen Sie Ihre .env Datei und Airtable-Konfiguration
+          </p>
+        </div>
+      )}
+
+      {connectionStatus === 'disconnected' && !errorMessage && (
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <h4 className="text-yellow-800 font-medium mb-2">⚠️ Demo-Modus aktiv</h4>
+          <ul className="text-yellow-700 text-sm space-y-1">
+            <li>• Daten werden nur lokal gespeichert</li>
+            <li>• Beim Neuladen gehen Daten verloren</li>
+            <li>• Konfigurieren Sie Airtable für permanente Speicherung</li>
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+
   const ValidationAlert = ({ errors }) => {
     if (errors.length === 0) return null;
 
     return (
-      <div className="validation-alert mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+      <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
         <div className="flex items-start space-x-2">
           <AlertTriangle className="text-red-500 mt-0.5 flex-shrink-0" size={18} />
           <div>
@@ -628,10 +777,10 @@ const {
     if (!showSuccessModal) return null;
     
     return (
-      <div className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowSuccessModal(false)}>
-        <div className="success-modal-content bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl transform">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowSuccessModal(false)}>
+        <div className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl transform">
           <div className="text-center">
-            <div className="success-icon w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Trophy className="w-8 h-8 text-green-600" />
             </div>
             <h3 className="text-xl font-bold text-gray-800 mb-4">Erfolgreich!</h3>
@@ -653,9 +802,9 @@ const {
   const TabButton = ({ id, label, icon: Icon, isActive, onClick }) => (
     <button
       onClick={onClick}
-      className={`tab-button flex items-center space-x-2 px-4 md:px-6 py-2 md:py-3 rounded-full transition-all duration-300 ${
+      className={`flex items-center space-x-2 px-4 md:px-6 py-2 md:py-3 rounded-full transition-all duration-300 ${
         isActive 
-          ? 'active bg-blue-500 text-white shadow-lg transform scale-105' 
+          ? 'bg-blue-500 text-white shadow-lg transform scale-105' 
           : 'bg-white text-gray-600 hover:bg-gray-50 shadow-md hover:shadow-lg'
       }`}
     >
@@ -670,7 +819,7 @@ const {
     const playedMatches = matches.filter(m => m.group === groupName && m.status === 'completed').length;
     
     return (
-      <div className="group-card bg-white rounded-2xl shadow-lg p-4 md:p-6 hover:shadow-xl transition-all duration-300">
+      <div className="bg-white rounded-2xl shadow-lg p-4 md:p-6 hover:shadow-xl transition-all duration-300">
         <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-4 flex items-center justify-between">
           <div className="flex items-center">
             <Users className="mr-2 text-blue-500" size={20} />
@@ -702,10 +851,10 @@ const {
                   }`}>
                     <td className="py-2 px-1 text-center">
                       <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
-                        index === 0 ? 'position-1 bg-yellow-500 text-white' : 
-                        index === 1 ? 'position-2 bg-gray-400 text-white' : 
-                        index === 2 ? 'position-3 bg-orange-400 text-white' : 
-                        'position-other bg-gray-200 text-gray-700'
+                        index === 0 ? 'bg-yellow-500 text-white' : 
+                        index === 1 ? 'bg-gray-400 text-white' : 
+                        index === 2 ? 'bg-orange-400 text-white' : 
+                        'bg-gray-200 text-gray-700'
                       }`}>
                         {index + 1}
                       </span>
@@ -743,7 +892,7 @@ const {
               
               return (
                 <div key={index} className={`p-3 rounded-lg border transition-all duration-200 ${
-                  isCompleted ? 'match-completed bg-green-50 border-green-200' : 'match-pending bg-yellow-50 border-yellow-200'
+                  isCompleted ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
                 }`}>
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -785,10 +934,10 @@ const {
                       )}
                     </div>
                     
-                    <span className={`status-badge px-2 md:px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ml-3 ${
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ml-3 ${
                       isCompleted 
-                        ? 'status-completed bg-green-100 text-green-700' 
-                        : 'status-pending bg-yellow-100 text-yellow-700'
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-yellow-100 text-yellow-700'
                     }`}>
                       {isCompleted ? 'Gespielt' : 'Ausstehend'}
                     </span>
@@ -848,12 +997,9 @@ const {
 
     return (
       <div className="bg-white rounded-2xl shadow-lg p-4 md:p-6">
-        <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-6 flex items-center justify-between">
-          <div className="flex items-center">
-            <Settings className="mr-2 text-blue-500" size={20} />
-            Alle Matches verwalten ({allMatches.length})
-          </div>
-          <SyncStatusBadge />
+        <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-6 flex items-center">
+          <Settings className="mr-2 text-blue-500" size={20} />
+          Alle Matches verwalten ({allMatches.length})
         </h3>
         
         {allMatches.length === 0 ? (
@@ -874,6 +1020,11 @@ const {
                       <span className="font-medium text-gray-800">
                         {match.player1} vs {match.player2}
                       </span>
+                      {match.airtableId && connectionStatus === 'connected' && (
+                        <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs">
+                          Airtable
+                        </span>
+                      )}
                     </div>
                     
                     <div className="text-sm text-gray-600">
@@ -956,15 +1107,6 @@ const {
                 Die Endrunde spielen 8 Spieler. Jeweils die 2 Besten aus den 3 Gruppen plus die 2 besten 3ten aus allen Gruppen.
                 Gespielt wird im Best-of-3-Format mit Match-Tiebreak bei 1:1 Sätzen.
               </p>
-              
-              {/* Sync Status Message */}
-              {syncMessage && (
-                <div className="mt-4 max-w-2xl mx-auto">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-blue-700 text-sm">{syncMessage}</p>
-                  </div>
-                </div>
-              )}
             </div>
             
             {/* Gruppenphase */}
@@ -1102,18 +1244,18 @@ const {
               </div>
             ) : (
               <div className="max-w-2xl mx-auto space-y-8">
+                {/* Connection Status - always show when authenticated */}
+                <ConnectionStatusCard />
+                
                 {/* Admin Match Liste */}
                 {isAdminMode && <AdminMatchList />}
                 
                 {/* Match-Eingabe */}
                 <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
                   <div className="mb-6 flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <h3 className="text-lg font-semibold text-gray-800">
-                        {isAdminMode ? 'Admin-Modus' : 'Standard-Modus'}
-                      </h3>
-                      <SyncStatusBadge />
-                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      {isAdminMode ? 'Admin-Modus' : 'Standard-Modus'}
+                    </h3>
                     <button
                       onClick={() => {
                         setIsAuthenticated(false);
@@ -1255,14 +1397,14 @@ const {
 
                     <button
                       onClick={addNewMatch}
-                      disabled={!newMatch.player1 || !newMatch.player2 || validationErrors.length > 0 || isLoading || isSyncing}
+                      disabled={!newMatch.player1 || !newMatch.player2 || validationErrors.length > 0 || isLoading}
                       className={`w-full py-4 rounded-xl font-medium flex items-center justify-center space-x-2 transition-all duration-200 ${
-                        (!newMatch.player1 || !newMatch.player2 || validationErrors.length > 0 || isLoading || isSyncing)
+                        (!newMatch.player1 || !newMatch.player2 || validationErrors.length > 0 || isLoading)
                           ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'btn-success bg-green-500 text-white hover:bg-green-600'
+                          : 'bg-green-500 text-white hover:bg-green-600'
                       }`}
                     >
-                      {(isLoading || isSyncing) ? (
+                      {isLoading ? (
                         <>
                           <RefreshCw size={20} className="animate-spin" />
                           <span>Speichert...</span>
@@ -1284,24 +1426,12 @@ const {
                       </ul>
                     </div>
 
-                    <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                      <h4 className="text-amber-800 font-medium mb-2">
-                        {isOnlineMode ? '☁️ Google Sheets Integration:' : 'ℹ️ Demo-Modus:'}
-                      </h4>
-                      <ul className="text-amber-700 text-sm space-y-1">
-                        {isOnlineMode ? (
-                          <>
-                            <li>• Daten werden automatisch in Google Sheets gespeichert</li>
-                            <li>• Echtzeit-Synchronisation zwischen allen Geräten</li>
-                            <li>• Fallback auf lokalen Speicher bei Verbindungsproblemen</li>
-                          </>
-                        ) : (
-                          <>
-                            <li>• Daten werden nur lokal gespeichert</li>
-                            <li>• Beim Aktualisieren der Seite gehen Daten verloren</li>
-                            <li>• Google Sheets Integration nicht verfügbar</li>
-                          </>
-                        )}
+                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <h4 className="text-green-800 font-medium mb-2">✅ Nur Airtable Integration:</h4>
+                      <ul className="text-green-700 text-sm space-y-1">
+                        <li>• Alle Daten werden in Airtable gespeichert</li>
+                        <li>• Keine Google Sheets mehr - saubere Lösung</li>
+                        <li>• Demo-Fallback wenn Airtable nicht verfügbar</li>
                       </ul>
                     </div>
                   </div>
