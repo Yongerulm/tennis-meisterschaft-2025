@@ -53,7 +53,7 @@ const TennisChampionship = () => {
   const AIRTABLE_CONFIG = {
     baseId: getEnvVar('REACT_APP_AIRTABLE_BASE_ID', 'app5txy8Rr2jz0R0i'),
     tableName: getEnvVar('REACT_APP_AIRTABLE_TABLE_NAME', 'Matches'),
-    apiKey: getEnvVar('REACT_APP_AIRTABLE_API_KEY', 'pata8AegwOwmtid9t.f9bbcc2ac3248d3712e9443d9df066c7fcc922683c05401b6028a5892a5b25e9'),
+    apiKey: getEnvVar('REACT_APP_AIRTABLE_API_KEY', 'patQSmOX7P5QcaPW3.16c2d2fef0448104c5aa6912ffff87b5baa8de2a32ead7684fc4b98b3a6fd8cc'),
     get apiUrl() {
       return `https://api.airtable.com/v0/${this.baseId}/${this.tableName}`;
     }
