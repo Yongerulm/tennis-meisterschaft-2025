@@ -5,8 +5,8 @@ import { useState } from 'react';
 
 // Airtable Konfiguration
 const AIRTABLE_API_KEY = 'pata8AegwOwmtid9t.f9bbcc2ac3248d3712e9443d9df066c7fcc922683c05401b6028a5892a5b25e9'; // DEINE API-KEY HIER
-const AIRTABLE_BASE_ID = 'app5txy8Rr2jz0R0i.'; // DEINE BASE-ID HIER
-const AIRTABLE_TABLE_NAME = 'Tennis Meisterschaft 2025';
+const AIRTABLE_BASE_ID = 'app5txy8Rr2jz0R0i'; // DEINE BASE-ID HIER
+const AIRTABLE_TABLE_NAME = 'Matches';
 
 const AIRTABLE_API_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_NAME}`;
 
