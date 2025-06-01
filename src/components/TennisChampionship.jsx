@@ -144,50 +144,58 @@ const TennisChampionship = () => {
   const loadMatches = async () => {
     try {
       if (connectionStatus !== 'connected') {
-        console.log('⚠️ Verwende Demo-Daten - Airtable nicht verbunden');
+        console.log('⚠️ Airtable nicht verbunden - verwende Demo-Daten');
         setMatches(demoMatches);
         return;
       }
 
+      console.log('📊 Lade Matches aus Airtable...');
       const response = await airtableRequest('GET');
       
-      const airtableMatches = response.records.map(record => ({
-        id: record.fields.ID,
-        group: record.fields.Gruppe,
-        phase: record.fields.Phase,
-        player1: record.fields.Spieler1,
-        player2: record.fields.Spieler2,
-        set1: {
-          player1: record.fields.Satz1_Spieler1 || 0,
-          player2: record.fields.Satz1_Spieler2 || 0
-        },
-        set2: {
-          player1: record.fields.Satz2_Spieler1 || 0,
-          player2: record.fields.Satz2_Spieler2 || 0
-        },
-        ...(record.fields.Tiebreak_Spieler1 && {
-          tiebreak: {
-            player1: record.fields.Tiebreak_Spieler1,
-            player2: record.fields.Tiebreak_Spieler2
-          }
-        }),
-        winner: record.fields.Sieger,
-        status: record.fields.Status,
-        timestamp: record.fields.Date,
-        airtableId: record.id
-      }));
+      if (response.records && response.records.length > 0) {
+        const airtableMatches = response.records.map(record => ({
+          id: record.fields.ID,
+          group: record.fields.Gruppe,
+          phase: record.fields.Phase,
+          player1: record.fields.Spieler1,
+          player2: record.fields.Spieler2,
+          set1: {
+            player1: record.fields.Satz1_Spieler1 || 0,
+            player2: record.fields.Satz1_Spieler2 || 0
+          },
+          set2: {
+            player1: record.fields.Satz2_Spieler1 || 0,
+            player2: record.fields.Satz2_Spieler2 || 0
+          },
+          ...(record.fields.Tiebreak_Spieler1 && {
+            tiebreak: {
+              player1: record.fields.Tiebreak_Spieler1,
+              player2: record.fields.Tiebreak_Spieler2
+            }
+          }),
+          winner: record.fields.Sieger,
+          status: record.fields.Status,
+          timestamp: record.fields.Date,
+          airtableId: record.id
+        }));
 
-      setMatches(airtableMatches);
-      
-      if (airtableMatches.length > 0) {
-        const maxId = Math.max(...airtableMatches.map(m => m.id));
-        setNextMatchId(maxId + 1);
+        setMatches(airtableMatches);
+        
+        if (airtableMatches.length > 0) {
+          const maxId = Math.max(...airtableMatches.map(m => m.id));
+          setNextMatchId(maxId + 1);
+        }
+        
+        console.log(`📊 ${airtableMatches.length} echte Matches von Airtable geladen`);
+      } else {
+        console.log('📊 Keine Matches in Airtable gefunden - starte mit leerer Liste');
+        setMatches([]);
+        setNextMatchId(1000);
       }
-      
-      console.log(`📊 ${airtableMatches.length} Matches von Airtable geladen`);
       
     } catch (error) {
       console.error('❌ Fehler beim Laden der Matches:', error);
+      console.log('⚠️ Fallback zu Demo-Daten aufgrund von Fehler');
       setMatches(demoMatches);
       setErrorMessage(`Laden fehlgeschlagen: ${error.message}`);
     }
@@ -256,13 +264,26 @@ const TennisChampionship = () => {
   useEffect(() => {
     const initializeApp = async () => {
       console.log('🎾 Tennis App wird gestartet...');
+      
+      // Erst Verbindung testen
       const connected = await testAirtableConnection();
+      
+      // Dann Matches laden (basierend auf Verbindungsstatus)
       await loadMatches();
+      
       console.log('🚀 Tennis App erfolgreich geladen!');
     };
 
     initializeApp();
-  }, []);
+  }, []); // Nur einmal beim Start ausführen
+
+  // Matches neu laden wenn sich der Verbindungsstatus ändert
+  useEffect(() => {
+    if (connectionStatus === 'connected') {
+      console.log('🔄 Verbindung hergestellt - lade echte Matches...');
+      loadMatches();
+    }
+  }, [connectionStatus]);
 
   // Tennis Score Validation
   const validateTennisScore = useCallback((set1P1, set1P2, set2P1, set2P2, tbP1, tbP2) => {
