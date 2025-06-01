@@ -1258,9 +1258,6 @@ const TennisChampionship = () => {
                   >
                     Anmelden
                   </button>
-                  <p className="text-sm text-gray-500 text-center">
-                    Standard-PIN: 2025 | Admin-PIN: 9999
-                  </p>
                 </div>
               </div>
             ) : (
