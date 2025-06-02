@@ -1514,31 +1514,34 @@ const TennisChampionship = () => {
               </div>
 
               {/* Teilnahme-Bestätigung */}
-              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6">
-                <h3 className="text-xl font-semibold text-blue-800 mb-4">✅ 12. Teilnahme-Bestätigung</h3>
-                <p className="text-blue-700 mb-4">Mit der Anmeldung zur Vereinsmeisterschaft bestätigen alle Teilnehmer:</p>
-                <ul className="list-none space-y-2 text-blue-700">
-                  <li className="flex items-start">
-                    <span className="text-green-500 mr-2 mt-1">✅</span>
-                    <span>Kenntnis und Anerkennung dieses Regelwerks</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-green-500 mr-2 mt-1">✅</span>
-                    <span>Eigenverantwortliche Terminvereinbarung</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-green-500 mr-2 mt-1">✅</span>
-                    <span>Pünktliche und korrekte Ergebnismeldung</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-green-500 mr-2 mt-1">✅</span>
-                    <span>Fair Play und sportliches Verhalten</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-green-500 mr-2 mt-1">✅</span>
-                    <span>Teilnahme an eigene Kosten (Platzmiete, Bälle)</span>
-                  </li>
-                </ul>
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-6">
+                <h3 className="text-xl font-semibold text-green-800 mb-4 flex items-center">
+                  <span className="text-green-600 mr-2">✅</span>
+                  12. Teilnahme-Bestätigung
+                </h3>
+                <p className="text-green-700 mb-4">Mit der Anmeldung zur Vereinsmeisterschaft bestätigen alle Teilnehmer:</p>
+                <div className="space-y-3">
+                  <div className="flex items-start p-3 bg-white rounded-lg border border-green-100">
+                    <span className="text-green-500 mr-3 mt-0.5 text-lg">✅</span>
+                    <span className="text-gray-700">Kenntnis und Anerkennung dieses Regelwerks</span>
+                  </div>
+                  <div className="flex items-start p-3 bg-white rounded-lg border border-green-100">
+                    <span className="text-green-500 mr-3 mt-0.5 text-lg">✅</span>
+                    <span className="text-gray-700">Eigenverantwortliche Terminvereinbarung</span>
+                  </div>
+                  <div className="flex items-start p-3 bg-white rounded-lg border border-green-100">
+                    <span className="text-green-500 mr-3 mt-0.5 text-lg">✅</span>
+                    <span className="text-gray-700">Pünktliche und korrekte Ergebnismeldung</span>
+                  </div>
+                  <div className="flex items-start p-3 bg-white rounded-lg border border-green-100">
+                    <span className="text-green-500 mr-3 mt-0.5 text-lg">✅</span>
+                    <span className="text-gray-700">Fair Play und sportliches Verhalten</span>
+                  </div>
+                  <div className="flex items-start p-3 bg-white rounded-lg border border-green-100">
+                    <span className="text-green-500 mr-3 mt-0.5 text-lg">✅</span>
+                    <span className="text-gray-700">Teilnahme an eigene Kosten (Platzmiete, Bälle)</span>
+                  </div>
+                </div>
               </div>
 
               {/* Schlusswort */}
