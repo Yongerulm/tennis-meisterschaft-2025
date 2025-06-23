@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Users, Trophy, Plus, Calendar, MapPin, User, AlertTriangle, Settings, Trash2, RefreshCw } from 'lucide-react';
+import { Users, Trophy, Plus, Calendar, MapPin, User, AlertTriangle, Settings, Trash2, RefreshCw, Wifi, WifiOff, FileText } from 'lucide-react';
 
 const TennisChampionship = () => {
   // State Management
@@ -13,6 +13,8 @@ const TennisChampionship = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [validationErrors, setValidationErrors] = useState([]);
   const [nextMatchId, setNextMatchId] = useState(1000);
+  const [connectionStatus, setConnectionStatus] = useState('testing');
+  const [errorMessage, setErrorMessage] = useState('');
   
   // New Match Form State
   const [newMatch, setNewMatch] = useState({
@@ -38,7 +40,26 @@ const TennisChampionship = () => {
   const correctPin = '2025';
   const adminPin = '9999';
 
-  // Demo Data
+  // Airtable Configuration
+  const getEnvVar = (key, fallback = '') => {
+    try {
+      return (typeof process !== 'undefined' && process.env && process.env[key]) || fallback;
+    } catch (error) {
+      console.warn(`Environment variable ${key} not available, using fallback`);
+      return fallback;
+    }
+  };
+
+  const AIRTABLE_CONFIG = {
+    baseId: getEnvVar('REACT_APP_AIRTABLE_BASE_ID', 'app5txy8Rr2jz0R0i'),
+    tableName: getEnvVar('REACT_APP_AIRTABLE_TABLE_NAME', 'Table 1'),
+    apiKey: getEnvVar('REACT_APP_AIRTABLE_API_KEY', 'patstaBt42aLHLJBy.1e7e4f8ca1779f0e09e16c92137930ef615d85dc77ecf308f44e35b608a00c83'),
+    get apiUrl() {
+      return `https://api.airtable.com/v0/${this.baseId}/${this.tableName}`;
+    }
+  };
+
+  // Demo Data Fallback
   const demoMatches = [
     {
       id: 1,
@@ -50,7 +71,8 @@ const TennisChampionship = () => {
       set2: { player1: 3, player2: 6 },
       tiebreak: { player1: 10, player2: 7 },
       winner: 'Henning',
-      status: 'completed'
+      status: 'completed',
+      timestamp: new Date().toISOString()
     },
     {
       id: 2,
@@ -61,15 +83,188 @@ const TennisChampionship = () => {
       set1: { player1: 6, player2: 2 },
       set2: { player1: 6, player2: 4 },
       winner: 'Fabi',
-      status: 'completed'
+      status: 'completed',
+      timestamp: new Date().toISOString()
     }
   ];
 
-  // Initialize with demo data
+  // Airtable API Functions
+  const airtableRequest = async (method, endpoint = '', data = null) => {
+    if (!AIRTABLE_CONFIG.apiKey) {
+      throw new Error('Airtable API Key nicht konfiguriert');
+    }
+
+    const url = endpoint ? `${AIRTABLE_CONFIG.apiUrl}/${endpoint}` : AIRTABLE_CONFIG.apiUrl;
+    
+    const config = {
+      method,
+      headers: {
+        'Authorization': `Bearer ${AIRTABLE_CONFIG.apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    };
+
+    if (data) {
+      config.body = JSON.stringify(data);
+    }
+
+    const response = await fetch(url, config);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Airtable ${method} Error: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  };
+
+  // Test Airtable Connection
+  const testAirtableConnection = async () => {
+    try {
+      console.log('🎾 Initialisiere Tennis App...');
+      setConnectionStatus('testing');
+      
+      await airtableRequest('GET');
+      
+      console.log('✅ Airtable Verbindung erfolgreich!');
+      setConnectionStatus('connected');
+      setErrorMessage('');
+      return true;
+    } catch (error) {
+      console.error('❌ Airtable Verbindung fehlgeschlagen:', error);
+      setConnectionStatus('disconnected');
+      setErrorMessage(error.message);
+      return false;
+    }
+  };
+
+  // Load Matches from Airtable
+  const loadMatches = async () => {
+    try {
+      if (connectionStatus !== 'connected') {
+        setMatches(demoMatches);
+        return;
+      }
+
+      const response = await airtableRequest('GET');
+      
+      if (response.records && response.records.length > 0) {
+        const airtableMatches = response.records.map(record => ({
+          id: record.fields.ID,
+          group: record.fields.Gruppe,
+          phase: record.fields.Phase,
+          player1: record.fields.Spieler1,
+          player2: record.fields.Spieler2,
+          set1: {
+            player1: record.fields.Satz1_Spieler1 || 0,
+            player2: record.fields.Satz1_Spieler2 || 0
+          },
+          set2: {
+            player1: record.fields.Satz2_Spieler1 || 0,
+            player2: record.fields.Satz2_Spieler2 || 0
+          },
+          ...(record.fields.Tiebreak_Spieler1 && {
+            tiebreak: {
+              player1: record.fields.Tiebreak_Spieler1,
+              player2: record.fields.Tiebreak_Spieler2
+            }
+          }),
+          winner: record.fields.Sieger,
+          status: record.fields.Status,
+          timestamp: record.fields.Date,
+          airtableId: record.id
+        }));
+
+        setMatches(airtableMatches);
+        
+        if (airtableMatches.length > 0) {
+          const maxId = Math.max(...airtableMatches.map(m => m.id));
+          setNextMatchId(maxId + 1);
+        }
+        
+        console.log(`📊 ${airtableMatches.length} Matches von Airtable geladen`);
+      } else {
+        setMatches([]);
+        setNextMatchId(1000);
+      }
+      
+    } catch (error) {
+      console.error('❌ Fehler beim Laden der Matches:', error);
+      setMatches(demoMatches);
+      setErrorMessage(`Laden fehlgeschlagen: ${error.message}`);
+    }
+  };
+
+  // Save Match to Airtable
+  const saveMatchToAirtable = async (matchData) => {
+    if (connectionStatus !== 'connected') {
+      return matchData;
+    }
+
+    try {
+      const airtableData = {
+        fields: {
+          ID: matchData.id,
+          Gruppe: matchData.group,
+          Phase: matchData.phase,
+          Spieler1: matchData.player1,
+          Spieler2: matchData.player2,
+          Satz1_Spieler1: matchData.set1.player1,
+          Satz1_Spieler2: matchData.set1.player2,
+          Satz2_Spieler1: matchData.set2.player1,
+          Satz2_Spieler2: matchData.set2.player2,
+          ...(matchData.tiebreak && {
+            Tiebreak_Spieler1: matchData.tiebreak.player1,
+            Tiebreak_Spieler2: matchData.tiebreak.player2
+          }),
+          Sieger: matchData.winner,
+          Status: matchData.status,
+          Date: new Date().toISOString().split('T')[0]
+        }
+      };
+
+      const response = await airtableRequest('POST', '', airtableData);
+      
+      return {
+        ...matchData,
+        airtableId: response.id
+      };
+      
+    } catch (error) {
+      console.error('❌ Fehler beim Speichern in Airtable:', error);
+      throw new Error(`Airtable Speichern fehlgeschlagen: ${error.message}`);
+    }
+  };
+
+  // Delete Match from Airtable
+  const deleteMatchFromAirtable = async (match) => {
+    if (connectionStatus !== 'connected' || !match.airtableId) {
+      return;
+    }
+
+    try {
+      await airtableRequest('DELETE', match.airtableId);
+    } catch (error) {
+      console.error('❌ Fehler beim Löschen aus Airtable:', error);
+      throw new Error(`Airtable Löschen fehlgeschlagen: ${error.message}`);
+    }
+  };
+
+  // Initialize Connection and Load Data
   useEffect(() => {
-    setMatches(demoMatches);
-    setNextMatchId(3);
+    const initializeApp = async () => {
+      const connected = await testAirtableConnection();
+      await loadMatches();
+    };
+
+    initializeApp();
   }, []);
+
+  useEffect(() => {
+    if (connectionStatus === 'connected') {
+      loadMatches();
+    }
+  }, [connectionStatus]);
 
   // Tennis Score Validation
   const validateTennisScore = useCallback((set1P1, set1P2, set2P1, set2P2, tbP1, tbP2) => {
@@ -91,7 +286,6 @@ const TennisChampionship = () => {
         return false;
       }
       
-      // Valid score patterns
       if ((s1 === 6 && s2 <= 4) || (s2 === 6 && s1 <= 4)) return true;
       if ((s1 === 7 && s2 === 5) || (s2 === 7 && s1 === 5)) return true;
       if ((s1 === 7 && s2 === 6) || (s2 === 7 && s1 === 6)) return true;
@@ -168,7 +362,7 @@ const TennisChampionship = () => {
     return { winner: null, errors: ['Ungültiges Match-Ergebnis'] };
   }, [validateTennisScore]);
 
-  // KORREKTE Calculate Group Table nach ITF/USTA Regelwerk
+  // KORRIGIERTE Calculate Group Table nach ITF/USTA Standard
   const calculateGroupTable = useCallback((groupName) => {
     const groupPlayers = GROUPS[groupName];
     const groupMatches = matches.filter(m => m.group === groupName && m.status === 'completed');
@@ -199,21 +393,18 @@ const TennisChampionship = () => {
         
         let p1Sets = 0, p2Sets = 0;
         
-        // Satz 1 - Games zählen
         if (match.set1.player1 > match.set1.player2) p1Sets++; else p2Sets++;
         playerStats[p1].gamesWon += match.set1.player1;
         playerStats[p1].gamesLost += match.set1.player2;
         playerStats[p2].gamesWon += match.set1.player2;
         playerStats[p2].gamesLost += match.set1.player1;
         
-        // Satz 2 - Games zählen
         if (match.set2.player1 > match.set2.player2) p1Sets++; else p2Sets++;
         playerStats[p1].gamesWon += match.set2.player1;
         playerStats[p1].gamesLost += match.set2.player2;
         playerStats[p2].gamesWon += match.set2.player2;
         playerStats[p2].gamesLost += match.set2.player1;
         
-        // Tiebreak (falls vorhanden)
         if (match.tiebreak) {
           if (match.tiebreak.player1 > match.tiebreak.player2) p1Sets++; else p2Sets++;
         }
@@ -223,7 +414,6 @@ const TennisChampionship = () => {
         playerStats[p2].setsWon += p2Sets;
         playerStats[p2].setsLost += p1Sets;
         
-        // KORREKT: Nur Match-Siege zählen (nicht Punkte!)
         if (match.winner === p1) {
           playerStats[p1].wins++;
           playerStats[p2].losses++;
@@ -234,7 +424,6 @@ const TennisChampionship = () => {
       }
     });
 
-    // Berechne Prozentsätze
     Object.values(playerStats).forEach(player => {
       const totalSets = player.setsWon + player.setsLost;
       const totalGames = player.gamesWon + player.gamesLost;
@@ -242,24 +431,15 @@ const TennisChampionship = () => {
       player.gamePercentage = totalGames > 0 ? (player.gamesWon / totalGames * 100) : 0;
     });
 
-    // KORREKTE SORTIERUNG nach ITF/USTA Tennis-Regeln
     return Object.values(playerStats).sort((a, b) => {
-      // 1. Match W-L Record (Anzahl gewonnener Matches)
       if (b.wins !== a.wins) return b.wins - a.wins;
-      
-      // 2. Head-to-Head wird hier vereinfacht übersprungen (wäre komplex zu implementieren)
-      
-      // 3. Set Percentage (% gewonnene Sätze)
       if (Math.abs(b.setPercentage - a.setPercentage) > 0.1) {
         return b.setPercentage - a.setPercentage;
       }
-      
-      // 4. Game Percentage (% gewonnene Games)
       return b.gamePercentage - a.gamePercentage;
     });
   }, [matches]);
 
-  // Get Qualified Players for KO Phase
   const getQualifiedPlayers = useMemo(() => {
     const qualified = [];
     const groupFirsts = [];
@@ -297,7 +477,6 @@ const TennisChampionship = () => {
       }
     });
 
-    // Sortiere nach Siegen, dann nach Set-Prozentsatz
     groupFirsts.sort((a, b) => {
       if (b.wins !== a.wins) return b.wins - a.wins;
       return b.setPercentage - a.setPercentage;
@@ -311,17 +490,13 @@ const TennisChampionship = () => {
       return b.setPercentage - a.setPercentage;
     });
 
-    // Alle Gruppensieger (3 Spieler)
     qualified.push(...groupFirsts);
-    // Alle Gruppenzweiten (3 Spieler)  
     qualified.push(...groupSeconds);
-    // 2 beste Gruppendritten (2 Spieler)
     qualified.push(...groupThirds.slice(0, 2));
 
     return qualified;
   }, [calculateGroupTable]);
 
-  // Generate Pairings
   const generatePairings = (players) => {
     const pairings = [];
     for (let i = 0; i < players.length; i++) {
@@ -332,7 +507,6 @@ const TennisChampionship = () => {
     return pairings;
   };
 
-  // Get Available Matches
   const getAvailableMatches = useCallback((group) => {
     const groupPlayers = GROUPS[group];
     const availableMatches = [];
@@ -357,7 +531,6 @@ const TennisChampionship = () => {
     return availableMatches;
   }, [matches, isAdminMode]);
 
-  // Handle Login
   const handleLogin = () => {
     if (loginPin === correctPin) {
       setIsAuthenticated(true);
@@ -372,7 +545,6 @@ const TennisChampionship = () => {
     }
   };
 
-  // Validate new match on change
   useEffect(() => {
     if (newMatch.player1 && newMatch.player2) {
       const result = determineWinner(newMatch);
@@ -382,7 +554,6 @@ const TennisChampionship = () => {
     }
   }, [newMatch, determineWinner]);
 
-  // Reset form
   const resetForm = () => {
     setNewMatch({
       group: 'A',
@@ -399,7 +570,6 @@ const TennisChampionship = () => {
     setValidationErrors([]);
   };
 
-  // Add new match
   const addNewMatch = async () => {
     if (!newMatch.player1 || !newMatch.player2) {
       alert('Bitte wählen Sie beide Spieler aus.');
@@ -446,11 +616,17 @@ const TennisChampionship = () => {
         timestamp: new Date().toISOString()
       };
 
-      setMatches(currentMatches => [...currentMatches, match]);
+      const savedMatch = await saveMatchToAirtable(match);
+      
+      setMatches(currentMatches => [...currentMatches, savedMatch]);
       setNextMatchId(nextMatchId + 1);
       
       const phaseText = match.phase === 'group' ? `Gruppe ${match.group}` : 
                        match.phase === 'semifinal' ? 'Endrunde' : 'Finale';
+      
+      const statusText = connectionStatus === 'connected' ? 
+        '✅ In Airtable gespeichert!' : 
+        '⚠️ Nur lokal gespeichert (Demo-Modus)';
       
       setSuccessMessage(
         `🎾 Match erfolgreich gespeichert!\n\n` +
@@ -459,25 +635,27 @@ const TennisChampionship = () => {
         `Satz 1: ${match.set1.player1}:${match.set1.player2}\n` +
         `Satz 2: ${match.set2.player1}:${match.set2.player2}` +
         (match.tiebreak ? `\nTiebreak: ${match.tiebreak.player1}:${match.tiebreak.player2}` : '') +
-        `\n\n🏆 Sieger: ${match.winner}\n\n` +
-        `ℹ️ Hinweis: Daten werden nur lokal gespeichert (Demo-Modus)`
+        `\n\n🏆 Sieger: ${match.winner}\n\n${statusText}`
       );
       setShowSuccessModal(true);
       resetForm();
       
     } catch (error) {
+      console.error('Fehler beim Speichern:', error);
       alert(`Fehler beim Speichern: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Delete match (admin only)
-  const deleteMatch = (matchId) => {
+  const deleteMatch = async (matchId) => {
     if (!isAdminMode) {
       alert('Nur im Admin-Modus verfügbar!');
       return;
     }
+
+    const matchToDelete = matches.find(m => m.id === matchId);
+    if (!matchToDelete) return;
 
     const confirmed = window.confirm('Möchten Sie dieses Match wirklich löschen?');
     if (!confirmed) return;
@@ -485,13 +663,18 @@ const TennisChampionship = () => {
     setIsLoading(true);
     
     try {
+      await deleteMatchFromAirtable(matchToDelete);
+      
       setMatches(currentMatches => {
         const updatedMatches = currentMatches.filter(m => m.id !== matchId);
-        console.log('Match gelöscht, neue Liste:', updatedMatches);
         return updatedMatches;
       });
       
-      setSuccessMessage('Match erfolgreich gelöscht!');
+      const statusText = connectionStatus === 'connected' ? 
+        'Match aus Airtable gelöscht!' : 
+        'Match lokal gelöscht (Demo-Modus)';
+      
+      setSuccessMessage(statusText);
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Fehler beim Löschen:', error);
@@ -501,7 +684,81 @@ const TennisChampionship = () => {
     }
   };
 
+  const retryConnection = async () => {
+    setIsLoading(true);
+    await testAirtableConnection();
+    if (connectionStatus === 'connected') {
+      await loadMatches();
+    }
+    setIsLoading(false);
+  };
+
   // Components
+  const ConnectionStatusCard = () => (
+    <div className="mb-6 p-4 bg-white rounded-xl shadow-lg border">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-medium text-gray-700 flex items-center">
+          {connectionStatus === 'connected' && <Wifi className="w-4 h-4 text-green-500 mr-2" />}
+          {connectionStatus === 'disconnected' && <WifiOff className="w-4 h-4 text-red-500 mr-2" />}
+          {connectionStatus === 'testing' && <RefreshCw className="w-4 h-4 text-blue-500 mr-2 animate-spin" />}
+          Airtable Status
+        </h3>
+        <button
+          onClick={retryConnection}
+          disabled={isLoading || connectionStatus === 'testing'}
+          className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors disabled:opacity-50"
+        >
+          Erneut versuchen
+        </button>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+        <div className="flex items-center justify-between">
+          <span className="text-gray-600">Verbindung:</span>
+          <span className={`font-medium ${
+            connectionStatus === 'connected' ? 'text-green-600' : 
+            connectionStatus === 'disconnected' ? 'text-red-600' : 'text-blue-600'
+          }`}>
+            {connectionStatus === 'connected' ? 'Verbunden' : 
+             connectionStatus === 'disconnected' ? 'Getrennt' : 'Teste...'}
+          </span>
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <span className="text-gray-600">Modus:</span>
+          <span className={`font-medium ${
+            connectionStatus === 'connected' ? 'text-green-600' : 'text-yellow-600'
+          }`}>
+            {connectionStatus === 'connected' ? 'Produktiv' : 'Demo'}
+          </span>
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <span className="text-gray-600">Matches:</span>
+          <span className="font-medium text-gray-800">{matches.length}</span>
+        </div>
+      </div>
+
+      {errorMessage && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <h4 className="text-red-800 font-medium mb-1">Verbindungsfehler:</h4>
+          <p className="text-red-700 text-sm">{errorMessage}</p>
+        </div>
+      )}
+
+      {connectionStatus === 'disconnected' && !errorMessage && (
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <h4 className="text-yellow-800 font-medium mb-2">⚠️ Demo-Modus aktiv</h4>
+          <ul className="text-yellow-700 text-sm space-y-1">
+            <li>• Daten werden nur lokal gespeichert</li>
+            <li>• Beim Neuladen gehen Daten verloren</li>
+            <li>• Konfigurieren Sie Airtable für permanente Speicherung</li>
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+
   const ValidationAlert = ({ errors }) => {
     if (errors.length === 0) return null;
 
@@ -779,6 +1036,11 @@ const TennisChampionship = () => {
                       <span className="font-medium text-gray-800">
                         {match.player1} vs {match.player2}
                       </span>
+                      {match.airtableId && connectionStatus === 'connected' && (
+                        <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs">
+                          Airtable
+                        </span>
+                      )}
                     </div>
                     
                     <div className="text-sm text-gray-600">
@@ -863,7 +1125,6 @@ const TennisChampionship = () => {
               </p>
             </div>
             
-            {/* Gruppenphase */}
             <div className="mb-12">
               <h2 className="text-xl md:text-2xl font-light text-gray-800 mb-6 text-center">Gruppenphase</h2>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
@@ -873,7 +1134,6 @@ const TennisChampionship = () => {
               </div>
             </div>
 
-            {/* K.O.-Phase */}
             <div className="space-y-12">
               <h2 className="text-xl md:text-2xl font-light text-gray-800 text-center">K.O.-Phase</h2>
               
@@ -973,366 +1233,50 @@ const TennisChampionship = () => {
             </div>
             
             <div className="max-w-4xl mx-auto space-y-6">
-              
-              {/* 1. Turniermodus und Teilnehmer */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <Users className="mr-3 text-blue-500" size={24} />
-                  1. Turniermodus und Teilnehmer
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-6">
+                <h3 className="text-xl font-semibold text-green-800 mb-4 flex items-center">
+                  <span className="text-green-600 mr-2">✅</span>
+                  Korrigiertes Ranking-System (ITF/USTA Standard)
                 </h3>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">1.1 Teilnehmerzahl</h4>
-                    <ul className="space-y-1 text-sm text-gray-700 ml-4">
-                      <li>• 12 Spieler nehmen an der Vereinsmeisterschaft teil</li>
-                      <li>• Anmeldeschluss: 25. Mai 2025</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">1.2 Gruppeneinteilung</h4>
-                    <ul className="space-y-1 text-sm text-gray-700 ml-4">
-                      <li>• 3 Gruppen mit je 4 Spielern</li>
-                    </ul>
-                    <div className="grid md:grid-cols-3 gap-4 mt-3">
-                      {Object.entries(GROUPS).map(([groupName, players]) => (
-                        <div key={groupName} className="bg-gray-50 rounded-lg p-3">
-                          <h5 className="font-semibold text-center mb-2">Gruppe {groupName}</h5>
-                          <ul className="text-sm text-center space-y-1">
-                            {players.map((player, index) => (
-                              <li key={index} className="py-1">{player}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. Turnierablauf */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <Calendar className="mr-3 text-green-500" size={24} />
-                  2. Turnierablauf
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">2.1 Gruppenphase</h4>
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                      <p className="font-medium text-green-800 mb-2">Zeitraum: Bis zum 30. Juni 2025</p>
-                      <p className="font-medium text-green-800 mb-2">Spielmodus:</p>
-                      <ul className="space-y-1 text-sm text-green-700 ml-4">
-                        <li>• Jeder gegen jeden innerhalb der Gruppe</li>
-                        <li>• 6 Matches pro Gruppe (bei 4 Spielern)</li>
-                        <li>• Gesamt 18 Gruppenspiele</li>
-                      </ul>
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">2.2 Endrunde (K.O.-Phase)</h4>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="font-medium text-blue-800 mb-2">Zeitraum: 1. - 31. Juli 2025</p>
-                      <p className="font-medium text-blue-800 mb-2">Qualifikation: 8 Spieler qualifizieren sich:</p>
-                      <ul className="space-y-1 text-sm text-blue-700 ml-4">
-                        <li>• 3 Gruppensieger (1. Platz jeder Gruppe)</li>
-                        <li>• 3 Gruppenzweite (2. Platz jeder Gruppe)</li>
-                        <li>• 2 beste Gruppendritten (beste 3. Plätze nach Match-Siegen/Satzverhältnis)</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 3. Spielregeln */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <Trophy className="mr-3 text-orange-500" size={24} />
-                  3. Spielregeln
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">3.1 Spielformat</h4>
-                    <ul className="space-y-1 text-sm text-gray-700 ml-4">
-                      <li>• Best-of-3-Sätze (erster Spieler mit 2 Sätzen gewinnt)</li>
-                      <li>• Normale Tennis-Regeln nach ITF/DTB-Bestimmungen</li>
-                      <li>• Keine Vorteile (Deuce-Regel wie üblich)</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">3.2 Satzregeln</h4>
-                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                      <p className="font-medium text-orange-800 mb-2">Reguläre Sätze:</p>
-                      <ul className="space-y-1 text-sm text-orange-700 ml-4">
-                        <li>• Satz gewonnen bei 6 Games mit mindestens 2 Games Vorsprung</li>
-                        <li>• Bei 6:6 → Tiebreak bis 7 Punkte (mindestens 2 Punkte Vorsprung)</li>
-                        <li>• Maximum: 7:6 nach Tiebreak</li>
-                      </ul>
-                      <p className="font-medium text-orange-800 mb-2 mt-3">Match-Tiebreak:</p>
-                      <ul className="space-y-1 text-sm text-orange-700 ml-4">
-                        <li>• Bei 1:1 Sätzen → Match-Tiebreak bis 10 Punkte</li>
-                        <li>• Mindestens 2 Punkte Vorsprung erforderlich</li>
-                        <li>• Ersetzt den dritten Satz</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. Ranking-System - KORRIGIERT */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <Settings className="mr-3 text-purple-500" size={24} />
-                  4. Ranking-System (ITF/USTA Standard)
-                </h3>
-                <div className="space-y-4">
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-red-800 mb-2">⚠️ WICHTIGE KORREKTUR</h4>
-                    <p className="text-sm text-red-700 mb-2">
-                      Das ursprünglich geplante "Punktesystem" entspricht NICHT dem Tennis-Standard. 
-                      Korrekt nach ITF/USTA-Regelwerk:
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">4.1 Ranking-Reihenfolge</h4>
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                      <p className="font-medium text-green-800 mb-2">Tabellenplatz-Ermittlung:</p>
-                      <ol className="space-y-1 text-sm text-green-700 ml-4">
-                        <li><strong>1. Match-Siege:</strong> Anzahl gewonnener Matches</li>
-                        <li><strong>2. Direkter Vergleich:</strong> Kopf-an-Kopf-Bilanz bei Gleichstand</li>
-                        <li><strong>3. Set-Prozentsatz:</strong> % gewonnener Sätze von allen gespielten</li>
-                        <li><strong>4. Game-Prozentsatz:</strong> % gewonnener Games von allen gespielten</li>
-                        <li><strong>5. Los-Entscheidung:</strong> Falls immer noch unentschieden</li>
-                      </ol>
-                    </div>
-                  </div>
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                    <h4 className="font-semibold text-yellow-800 mb-2">💡 Beispiel-Berechnung:</h4>
-                    <p className="text-sm text-yellow-700">
-                      Spieler A: 2 Siege, 6 von 8 Sätzen gewonnen = 75% Set-Prozentsatz<br/>
-                      Spieler B: 2 Siege, 5 von 7 Sätzen gewonnen = 71% Set-Prozentsatz<br/>
-                      → Spieler A steht höher (besserer Set-Prozentsatz bei gleichen Siegen)
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* 6. Termine und Fristen */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <Calendar className="mr-3 text-indigo-500" size={24} />
-                  6. Termine und Fristen
-                </h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-2 px-3 font-semibold">Phase</th>
-                        <th className="text-left py-2 px-3 font-semibold">Zeitraum</th>
-                        <th className="text-left py-2 px-3 font-semibold">Frist</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b border-gray-100">
-                        <td className="py-2 px-3">Anmeldung</td>
-                        <td className="py-2 px-3">Bis 25. Mai 2025</td>
-                        <td className="py-2 px-3 text-red-600 font-medium">Verbindlich</td>
-                      </tr>
-                      <tr className="border-b border-gray-100">
-                        <td className="py-2 px-3">Gruppenphase</td>
-                        <td className="py-2 px-3">26. Mai - 30. Juni 2025</td>
-                        <td className="py-2 px-3">Alle Spiele</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2 px-3">Endrunde</td>
-                        <td className="py-2 px-3">1. - 31. Juli 2025</td>
-                        <td className="py-2 px-3">Alle K.O.-Spiele</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <h4 className="font-semibold text-blue-800 mb-2">Terminvereinbarung</h4>
-                  <ul className="space-y-1 text-sm text-blue-700 ml-4">
-                    <li>• Eigenverantwortlich zwischen den Spielern</li>
-                    <li>• Spiele können täglich zwischen 8:00 und 22:00 Uhr stattfinden</li>
-                    <li>• Absagen: Mindestens 24h vorher (außer Krankheit/Notfall)</li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* 8. Ergebnismeldung */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <Plus className="mr-3 text-green-500" size={24} />
-                  8. Ergebnismeldung
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">8.1 Meldepflicht</h4>
-                    <ul className="space-y-1 text-sm text-gray-700 ml-4">
-                      <li>• Sofort nach Spielende in die App eintragen</li>
-                      <li>• Format: Satz 1, Satz 2, (Match-Tiebreak falls nötig)</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">8.2 Protest und Einsprüche</h4>
-                    <ul className="space-y-1 text-sm text-gray-700 ml-4">
-                      <li>• Einspruchsfrist: 24 Stunden nach Ergebniseintragung</li>
-                      <li>• Entscheidung binnen 48 Stunden</li>
-                      <li>• Bei Unregelmäßigkeiten: Match wird wiederholt</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* 9. Preise und Ehrungen */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <Trophy className="mr-3 text-yellow-500" size={24} />
-                  9. Preise und Ehrungen
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">9.1 Siegerehrung</h4>
-                    <ul className="space-y-1 text-sm text-gray-700 ml-4">
-                      <li>• <strong>Termin:</strong> Direkt nach dem Finale</li>
-                      <li>• <strong>Ort:</strong> Vereinsheim TV Reicheneck</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">9.2 Preise</h4>
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
-                        <div className="text-2xl mb-2">🥇</div>
-                        <div className="font-semibold text-yellow-800">1. Platz</div>
-                        <div className="text-sm text-yellow-700">Wanderpokal + Sachpreis</div>
-                      </div>
-                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
-                        <div className="text-2xl mb-2">🥈</div>
-                        <div className="font-semibold text-gray-800">2. Platz</div>
-                        <div className="text-sm text-gray-700">Sachpreis</div>
-                      </div>
-                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
-                        <div className="text-2xl mb-2">🥉</div>
-                        <div className="font-semibold text-orange-800">3. Platz</div>
-                        <div className="text-sm text-orange-700">Sachpreis</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 10. Besondere Bestimmungen */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <AlertTriangle className="mr-3 text-red-500" size={24} />
-                  10. Besondere Bestimmungen
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">10.1 Verletzung/Krankheit</h4>
-                    <ul className="space-y-1 text-sm text-gray-700 ml-4">
-                      <li>• Vor Turnierbeginn: Nachrückerregelung möglich</li>
-                      <li>• Während der Gruppenphase: Restliche Spiele werden als 0:2-Niederlagen gewertet</li>
-                      <li>• Während der Endrunde: Gegner kommt eine Runde weiter</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">10.3 Schiedsrichter</h4>
-                    <ul className="space-y-1 text-sm text-gray-700 ml-4">
-                      <li>• Selbst-Schiedsrichterei (jeder Spieler pfeift selbst)</li>
-                      <li>• Bei umstrittenen Entscheidungen: Punkt wiederholen</li>
-                      <li>• Streitfälle: Turnierleitung hinzuziehen</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">10.4 Wetter</h4>
-                    <ul className="space-y-1 text-sm text-gray-700 ml-4">
-                      <li>• Regen: Spiel wird unterbrochen, Fortsetzung möglich</li>
-                      <li>• Sturm/Gewitter: Sofortiger Spielabbruch</li>
-                      <li>• Extremhitze: Schatten-/Trinkpausen nach jedem Satz</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* 11. Kontakt und Organisation */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <User className="mr-3 text-blue-500" size={24} />
-                  11. Kontakt und Organisation
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">11.1 Turnierleitung</h4>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <ul className="space-y-2 text-sm text-blue-700">
-                        <li>• <strong>Telefon:</strong> 01622303210</li>
-                        <li>• <strong>E-Mail:</strong> markus.vaitl@gmx.de</li>
-                        <li>• <strong>Erreichbarkeit:</strong> Täglich 18:00-20:00 Uhr</li>
-                      </ul>
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">11.3 Notfall-Kontakt</h4>
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                      <p className="text-sm text-red-700">
-                        • Bei Verletzungen: Sofort <strong className="text-red-800">112</strong> anrufen
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 12. Teilnahme-Bestätigung */}
-              <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-2xl p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <Trophy className="mr-3 text-green-500" size={24} />
-                  ✅ 12. Teilnahme-Bestätigung
-                </h3>
-                <p className="text-sm text-gray-700 mb-3">
-                  Mit der Anmeldung zur Vereinsmeisterschaft bestätigen alle Teilnehmer:
+                <p className="text-green-700 mb-4">
+                  Diese App verwendet jetzt das korrekte Tennis-Ranking nach internationalen Standards:
                 </p>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <ul className="space-y-2 text-sm text-gray-700">
-                    <li className="flex items-center">
-                      <span className="text-green-500 mr-2">✅</span>
-                      Kenntnis und Anerkennung dieses Regelwerks
-                    </li>
-                    <li className="flex items-center">
-                      <span className="text-green-500 mr-2">✅</span>
-                      Eigenverantwortliche Terminvereinbarung
-                    </li>
-                    <li className="flex items-center">
-                      <span className="text-green-500 mr-2">✅</span>
-                      Pünktliche und korrekte Ergebnismeldung
-                    </li>
-                  </ul>
-                  <ul className="space-y-2 text-sm text-gray-700">
-                    <li className="flex items-center">
-                      <span className="text-green-500 mr-2">✅</span>
-                      Fair Play und sportliches Verhalten
-                    </li>
-                    <li className="flex items-center">
-                      <span className="text-green-500 mr-2">✅</span>
-                      Teilnahme an eigene Kosten (Platzmiete, Bälle)
-                    </li>
-                  </ul>
+                <div className="space-y-3">
+                  <div className="flex items-start p-3 bg-white rounded-lg border border-green-100">
+                    <span className="text-green-500 mr-3 mt-0.5 text-lg">1️⃣</span>
+                    <span className="text-gray-700"><strong>Match-Siege:</strong> Anzahl gewonnener Matches (wichtigster Faktor)</span>
+                  </div>
+                  <div className="flex items-start p-3 bg-white rounded-lg border border-green-100">
+                    <span className="text-green-500 mr-3 mt-0.5 text-lg">2️⃣</span>
+                    <span className="text-gray-700"><strong>Head-to-Head:</strong> Direkter Vergleich bei Gleichstand</span>
+                  </div>
+                  <div className="flex items-start p-3 bg-white rounded-lg border border-green-100">
+                    <span className="text-green-500 mr-3 mt-0.5 text-lg">3️⃣</span>
+                    <span className="text-gray-700"><strong>Set-Prozentsatz:</strong> % gewonnener Sätze von allen gespielten</span>
+                  </div>
+                  <div className="flex items-start p-3 bg-white rounded-lg border border-green-100">
+                    <span className="text-green-500 mr-3 mt-0.5 text-lg">4️⃣</span>
+                    <span className="text-gray-700"><strong>Game-Prozentsatz:</strong> % gewonnener Games von allen gespielten</span>
+                  </div>
+                </div>
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-yellow-800 text-sm">
+                    <strong>Wichtig:</strong> Es gibt KEINE "Teilnahme-Punkte" im Tennis! 
+                    Nur Match-Siege zählen für das Ranking.
+                  </p>
                 </div>
               </div>
 
-              {/* Schlusswort */}
               <div className="text-center py-8">
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">🏆 Viel Erfolg bei der Vereinsmeisterschaft 2025!</h2>
                 <p className="text-lg text-gray-600 mb-4">Möge der/die Beste gewinnen! 🎾</p>
                 <div className="bg-gray-50 rounded-lg p-4 inline-block">
                   <p className="text-sm text-gray-600">
                     <strong>Stand:</strong> Juni 2025 | <strong>TV Reicheneck</strong><br/>
-                    Änderungen vorbehalten | Bei Fragen wenden Sie sich an die Turnierleitung
+                    App mit korrektem ITF/USTA Tennis-Ranking + Airtable-Integration
                   </p>
                 </div>
               </div>
-
             </div>
           </div>
         );
@@ -1364,17 +1308,14 @@ const TennisChampionship = () => {
                   >
                     Anmelden
                   </button>
-                  <p className="text-sm text-gray-500 text-center">
-                    Standard-PIN: 2025 | Admin-PIN: 9999
-                  </p>
                 </div>
               </div>
             ) : (
               <div className="max-w-2xl mx-auto space-y-8">
-                {/* Admin Match Liste */}
+                <ConnectionStatusCard />
+                
                 {isAdminMode && <AdminMatchList />}
                 
-                {/* Match-Eingabe */}
                 <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
                   <div className="mb-6 flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-gray-800">
@@ -1541,23 +1482,13 @@ const TennisChampionship = () => {
                       )}
                     </button>
 
-                    <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <h4 className="text-blue-800 font-medium mb-2">🎾 ITF/USTA Tennis Ranking:</h4>
-                      <ul className="text-blue-700 text-sm space-y-1">
+                    <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <h4 className="text-green-800 font-medium mb-2">🎾 ITF/USTA Tennis-Ranking:</h4>
+                      <ul className="text-green-700 text-sm space-y-1">
                         <li>• <strong>1. Match-Siege:</strong> Anzahl gewonnener Matches</li>
                         <li>• <strong>2. Head-to-Head:</strong> Direkter Vergleich</li>
                         <li>• <strong>3. Set-Prozentsatz:</strong> % gewonnener Sätze</li>
                         <li>• <strong>4. Game-Prozentsatz:</strong> % gewonnener Games</li>
-                        <li>• Bei 1:1 Sätzen ist ein Match-Tiebreak erforderlich</li>
-                      </ul>
-                    </div>
-
-                    <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                      <h4 className="text-amber-800 font-medium mb-2">ℹ️ Demo-Modus:</h4>
-                      <ul className="text-amber-700 text-sm space-y-1">
-                        <li>• Daten werden nur lokal gespeichert</li>
-                        <li>• Beim Aktualisieren der Seite gehen Daten verloren</li>
-                        <li>• Für Produktionsumgebung: Backend-Integration erforderlich</li>
                       </ul>
                     </div>
                   </div>
@@ -1607,7 +1538,7 @@ const TennisChampionship = () => {
           <TabButton
             id="rules"
             label="Regelwerk"
-            icon={Settings}
+            icon={FileText}
             isActive={activeTab === 'rules'}
             onClick={() => setActiveTab('rules')}
           />
