@@ -1137,7 +1137,7 @@ const TennisChampionship = () => {
             <div className="space-y-12">
               <h2 className="text-xl md:text-2xl font-light text-gray-800 text-center">K.O.-Phase</h2>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
                 <KOBracket phase="semifinal" title="Endrunde" />
                 <KOBracket phase="final" title="Finale" />
               </div>
@@ -1279,7 +1279,7 @@ const TennisChampionship = () => {
                   <div className="space-y-4">
                     <div className="bg-blue-50 rounded-lg p-4">
                       <h4 className="font-semibold text-blue-800 mb-2">1.1 Teilnehmerzahl</h4>
-                      <ul className="text-blue-700 text-sm space-y-1">
+                      <ul className="text-blue-700 text-sm space-y-1 list-none">
                         <li>• 12 Spieler nehmen an der Vereinsmeisterschaft teil</li>
                         <li>• Anmeldeschluss: 25. Mai 2025</li>
                       </ul>
@@ -1287,7 +1287,7 @@ const TennisChampionship = () => {
                     
                     <div className="bg-blue-50 rounded-lg p-4">
                       <h4 className="font-semibold text-blue-800 mb-2">1.2 Gruppeneinteilung</h4>
-                      <ul className="text-blue-700 text-sm space-y-1">
+                      <ul className="text-blue-700 text-sm space-y-1 list-none">
                         <li>• 3 Gruppen mit je 4 Spielern</li>
                         <li>• <strong>Gruppe A:</strong> Henning, Julia, Fabi, Michael</li>
                         <li>• <strong>Gruppe B:</strong> Markus, Thomas, Gunter, Bernd</li>
@@ -1308,7 +1308,7 @@ const TennisChampionship = () => {
                       <h4 className="font-semibold text-green-800 mb-2">2.1 Gruppenphase</h4>
                       <p className="text-green-700 text-sm mb-2"><strong>Zeitraum:</strong> Bis zum 30. Juni 2025</p>
                       <p className="text-green-700 text-sm mb-2"><strong>Spielmodus:</strong></p>
-                      <ul className="text-green-700 text-sm space-y-1">
+                      <ul className="text-green-700 text-sm space-y-1 list-none">
                         <li>• Jeder gegen jeden innerhalb der Gruppe</li>
                         <li>• 6 Matches pro Gruppe (bei 4 Spielern)</li>
                         <li>• Gesamt 18 Gruppenspiele</li>
@@ -1319,7 +1319,7 @@ const TennisChampionship = () => {
                       <h4 className="font-semibold text-green-800 mb-2">2.2 Endrunde (K.O.-Phase)</h4>
                       <p className="text-green-700 text-sm mb-2"><strong>Zeitraum:</strong> 1. - 31. Juli 2025</p>
                       <p className="text-green-700 text-sm mb-2"><strong>Qualifikation:</strong> 8 Spieler qualifizieren sich:</p>
-                      <ul className="text-green-700 text-sm space-y-1">
+                      <ul className="text-green-700 text-sm space-y-1 list-none">
                         <li>• 3 Gruppensieger (1. Platz jeder Gruppe)</li>
                         <li>• 3 Gruppenzweite (2. Platz jeder Gruppe)</li>
                         <li>• 2 beste Gruppendritten (beste 3. Plätze nach Punkten/Satzverhältnis)</li>
@@ -1337,7 +1337,7 @@ const TennisChampionship = () => {
                   <div className="space-y-4">
                     <div className="bg-yellow-50 rounded-lg p-4">
                       <h4 className="font-semibold text-yellow-800 mb-2">3.1 Spielformat</h4>
-                      <ul className="text-yellow-700 text-sm space-y-1">
+                      <ul className="text-yellow-700 text-sm space-y-1 list-none">
                         <li>• Best-of-3-Sätze (erster Spieler mit 2 Sätzen gewinnt)</li>
                         <li>• Normale Tennis-Regeln nach ITF/DTB-Bestimmungen</li>
                         <li>• Keine Vorteile (Deuce-Regel wie üblich)</li>
@@ -1347,13 +1347,13 @@ const TennisChampionship = () => {
                     <div className="bg-yellow-50 rounded-lg p-4">
                       <h4 className="font-semibold text-yellow-800 mb-2">3.2 Satzregeln</h4>
                       <p className="text-yellow-700 text-sm mb-2"><strong>Reguläre Sätze:</strong></p>
-                      <ul className="text-yellow-700 text-sm space-y-1 mb-3">
+                      <ul className="text-yellow-700 text-sm space-y-1 mb-3 list-none">
                         <li>• Satz gewonnen bei 6 Games mit mindestens 2 Games Vorsprung</li>
                         <li>• Bei 6:6 → Tiebreak bis 7 Punkte (mindestens 2 Punkte Vorsprung)</li>
                         <li>• Maximum: 7:6 nach Tiebreak</li>
                       </ul>
                       <p className="text-yellow-700 text-sm mb-2"><strong>Match-Tiebreak:</strong></p>
-                      <ul className="text-yellow-700 text-sm space-y-1">
+                      <ul className="text-yellow-700 text-sm space-y-1 list-none">
                         <li>• Bei 1:1 Sätzen → Match-Tiebreak bis 10 Punkte</li>
                         <li>• Mindestens 2 Punkte Vorsprung erforderlich</li>
                         <li>• Ersetzt den dritten Satz</li>
@@ -1371,7 +1371,7 @@ const TennisChampionship = () => {
                   <div className="space-y-4">
                     <div className="bg-purple-50 rounded-lg p-4">
                       <h4 className="font-semibold text-purple-800 mb-2">4.1 Gruppenpunkte</h4>
-                      <ul className="text-purple-700 text-sm space-y-1">
+                      <ul className="text-purple-700 text-sm space-y-1 list-none">
                         <li>• <strong>Sieg:</strong> 2 Punkte</li>
                         <li>• <strong>Niederlage:</strong> 1 Punkt (Teilnahme-Bonus)</li>
                         <li>• <strong>Nicht angetreten:</strong> 0 Punkte</li>
@@ -1381,7 +1381,7 @@ const TennisChampionship = () => {
                     <div className="bg-purple-50 rounded-lg p-4">
                       <h4 className="font-semibold text-purple-800 mb-2">4.2 Tabellenplatz-Ermittlung</h4>
                       <p className="text-purple-700 text-sm mb-2">Reihenfolge bei Punktgleichheit:</p>
-                      <ol className="text-purple-700 text-sm space-y-1">
+                      <ol className="text-purple-700 text-sm space-y-1 list-none">
                         <li>1. Direkter Vergleich (Kopf-an-Kopf)</li>
                         <li>2. Satzverhältnis (gewonnene:verlorene Sätze)</li>
                         <li>3. Spielverhältnis (gewonnene:verlorene Spiele)</li>
@@ -1429,7 +1429,7 @@ const TennisChampionship = () => {
                     
                     <div className="mt-4">
                       <h4 className="font-semibold text-red-800 mb-2">Terminvereinbarung</h4>
-                      <ul className="text-red-700 text-sm space-y-1">
+                      <ul className="text-red-700 text-sm space-y-1 list-none">
                         <li>• Eigenverantwortlich zwischen den Spielern</li>
                         <li>• Spiele können täglich zwischen 8:00 und 22:00 Uhr stattfinden</li>
                         <li>• Absagen: Mindestens 24h vorher (außer Krankheit/Notfall)</li>
@@ -1447,7 +1447,7 @@ const TennisChampionship = () => {
                   <div className="space-y-4">
                     <div className="bg-indigo-50 rounded-lg p-4">
                       <h4 className="font-semibold text-indigo-800 mb-2">8.1 Meldepflicht</h4>
-                      <ul className="text-indigo-700 text-sm space-y-1">
+                      <ul className="text-indigo-700 text-sm space-y-1 list-none">
                         <li>• Sofort nach Spielende in die App eintragen</li>
                         <li>• Format: Satz 1, Satz 2, (Match-Tiebreak falls nötig)</li>
                       </ul>
@@ -1455,7 +1455,7 @@ const TennisChampionship = () => {
                     
                     <div className="bg-indigo-50 rounded-lg p-4">
                       <h4 className="font-semibold text-indigo-800 mb-2">8.2 Protest und Einsprüche</h4>
-                      <ul className="text-indigo-700 text-sm space-y-1">
+                      <ul className="text-indigo-700 text-sm space-y-1 list-none">
                         <li>• Einspruchsfrist: 24 Stunden nach Ergebniseintragung</li>
                         <li>• Entscheidung binnen 48 Stunden</li>
                         <li>• Bei Unregelmäßigkeiten: Match wird wiederholt</li>
@@ -1473,7 +1473,7 @@ const TennisChampionship = () => {
                   <div className="space-y-4">
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h4 className="font-semibold text-gray-800 mb-2">9.1 Siegerehrung</h4>
-                      <ul className="text-gray-700 text-sm space-y-1">
+                      <ul className="text-gray-700 text-sm space-y-1 list-none">
                         <li>• <strong>Termin:</strong> Direkt nach dem Finale</li>
                         <li>• <strong>Ort:</strong> Vereinsheim TV Reicheneck</li>
                       </ul>
@@ -1481,7 +1481,7 @@ const TennisChampionship = () => {
                     
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h4 className="font-semibold text-gray-800 mb-2">9.2 Preise</h4>
-                      <ul className="text-gray-700 text-sm space-y-1">
+                      <ul className="text-gray-700 text-sm space-y-1 list-none">
                         <li>• <strong>1. Platz:</strong> Wanderpokal + Sachpreis</li>
                         <li>• <strong>2. Platz:</strong> Sachpreis</li>
                         <li>• <strong>3. Platz:</strong> Sachpreis</li>
@@ -1499,7 +1499,7 @@ const TennisChampionship = () => {
                   <div className="space-y-4">
                     <div className="bg-orange-50 rounded-lg p-4">
                       <h4 className="font-semibold text-orange-800 mb-2">10.1 Verletzung/Krankheit</h4>
-                      <ul className="text-orange-700 text-sm space-y-1">
+                      <ul className="text-orange-700 text-sm space-y-1 list-none">
                         <li>• Vor Turnierbeginn: Nachrückerregelung möglich</li>
                         <li>• Während der Gruppenphase: Restliche Spiele werden als 0:2-Niederlagen gewertet</li>
                         <li>• Während der Endrunde: Gegner kommt eine Runde weiter</li>
@@ -1508,7 +1508,7 @@ const TennisChampionship = () => {
                     
                     <div className="bg-orange-50 rounded-lg p-4">
                       <h4 className="font-semibold text-orange-800 mb-2">10.3 Schiedsrichter</h4>
-                      <ul className="text-orange-700 text-sm space-y-1">
+                      <ul className="text-orange-700 text-sm space-y-1 list-none">
                         <li>• Selbst-Schiedsrichterei (jeder Spieler pfeift selbst)</li>
                         <li>• Bei umstrittenen Entscheidungen: Punkt wiederholen</li>
                         <li>• Streitfälle: Turnierleitung hinzuziehen</li>
@@ -1517,7 +1517,7 @@ const TennisChampionship = () => {
                     
                     <div className="bg-orange-50 rounded-lg p-4">
                       <h4 className="font-semibold text-orange-800 mb-2">10.4 Wetter</h4>
-                      <ul className="text-orange-700 text-sm space-y-1">
+                      <ul className="text-orange-700 text-sm space-y-1 list-none">
                         <li>• Regen: Spiel wird unterbrochen, Fortsetzung möglich</li>
                         <li>• Sturm/Gewitter: Sofortiger Spielabbruch</li>
                         <li>• Extremhitze: Schatten-/Trinkpausen nach jedem Satz</li>
@@ -1535,7 +1535,7 @@ const TennisChampionship = () => {
                   <div className="space-y-4">
                     <div className="bg-teal-50 rounded-lg p-4">
                       <h4 className="font-semibold text-teal-800 mb-2">11.1 Turnierleitung</h4>
-                      <ul className="text-teal-700 text-sm space-y-1">
+                      <ul className="text-teal-700 text-sm space-y-1 list-none">
                         <li>• <strong>Telefon:</strong> 01622303210</li>
                         <li>• <strong>E-Mail:</strong> markus.vaitl@gmx.de</li>
                         <li>• <strong>Erreichbarkeit:</strong> Täglich 18:00-20:00 Uhr</li>
@@ -1544,7 +1544,7 @@ const TennisChampionship = () => {
                     
                     <div className="bg-teal-50 rounded-lg p-4">
                       <h4 className="font-semibold text-teal-800 mb-2">11.3 Notfall-Kontakt</h4>
-                      <ul className="text-teal-700 text-sm space-y-1">
+                      <ul className="text-teal-700 text-sm space-y-1 list-none">
                         <li>• Bei Verletzungen: Sofort <strong>112</strong> anrufen</li>
                       </ul>
                     </div>
@@ -1788,7 +1788,7 @@ const TennisChampionship = () => {
 
                     <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
                       <h4 className="text-green-800 font-medium mb-2">🎾 ITF/USTA Tennis-Ranking:</h4>
-                      <ul className="text-green-700 text-sm space-y-1">
+                      <ul className="text-green-700 text-sm space-y-1 list-none">
                         <li>• <strong>1. Match-Siege:</strong> Anzahl gewonnener Matches</li>
                         <li>• <strong>2. Head-to-Head:</strong> Direkter Vergleich</li>
                         <li>• <strong>3. Set-Prozentsatz:</strong> % gewonnener Sätze</li>
