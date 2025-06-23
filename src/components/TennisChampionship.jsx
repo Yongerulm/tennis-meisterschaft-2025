@@ -1267,13 +1267,317 @@ const TennisChampionship = () => {
                 </div>
               </div>
 
+              {/* Vollständiges Regelwerk */}
+              <div className="bg-white rounded-2xl shadow-lg p-6 space-y-8">
+                
+                <div>
+                  <h3 className="text-xl font-semibold text-blue-800 mb-4 flex items-center">
+                    <span className="text-blue-600 mr-2">📋</span>
+                    1. Turniermodus und Teilnehmer
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-blue-800 mb-2">1.1 Teilnehmerzahl</h4>
+                      <ul className="text-blue-700 text-sm space-y-1">
+                        <li>• 12 Spieler nehmen an der Vereinsmeisterschaft teil</li>
+                        <li>• Anmeldeschluss: 25. Mai 2025</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-blue-800 mb-2">1.2 Gruppeneinteilung</h4>
+                      <ul className="text-blue-700 text-sm space-y-1">
+                        <li>• 3 Gruppen mit je 4 Spielern</li>
+                        <li>• <strong>Gruppe A:</strong> Henning, Julia, Fabi, Michael</li>
+                        <li>• <strong>Gruppe B:</strong> Markus, Thomas, Gunter, Bernd</li>
+                        <li>• <strong>Gruppe C:</strong> Sascha, Herbert, Sven, Jose</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold text-green-800 mb-4 flex items-center">
+                    <span className="text-green-600 mr-2">🗓️</span>
+                    2. Turnierablauf
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-green-800 mb-2">2.1 Gruppenphase</h4>
+                      <p className="text-green-700 text-sm mb-2"><strong>Zeitraum:</strong> Bis zum 30. Juni 2025</p>
+                      <p className="text-green-700 text-sm mb-2"><strong>Spielmodus:</strong></p>
+                      <ul className="text-green-700 text-sm space-y-1">
+                        <li>• Jeder gegen jeden innerhalb der Gruppe</li>
+                        <li>• 6 Matches pro Gruppe (bei 4 Spielern)</li>
+                        <li>• Gesamt 18 Gruppenspiele</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-green-800 mb-2">2.2 Endrunde (K.O.-Phase)</h4>
+                      <p className="text-green-700 text-sm mb-2"><strong>Zeitraum:</strong> 1. - 31. Juli 2025</p>
+                      <p className="text-green-700 text-sm mb-2"><strong>Qualifikation:</strong> 8 Spieler qualifizieren sich:</p>
+                      <ul className="text-green-700 text-sm space-y-1">
+                        <li>• 3 Gruppensieger (1. Platz jeder Gruppe)</li>
+                        <li>• 3 Gruppenzweite (2. Platz jeder Gruppe)</li>
+                        <li>• 2 beste Gruppendritten (beste 3. Plätze nach Punkten/Satzverhältnis)</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold text-yellow-800 mb-4 flex items-center">
+                    <span className="text-yellow-600 mr-2">🎾</span>
+                    3. Spielregeln
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-yellow-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-yellow-800 mb-2">3.1 Spielformat</h4>
+                      <ul className="text-yellow-700 text-sm space-y-1">
+                        <li>• Best-of-3-Sätze (erster Spieler mit 2 Sätzen gewinnt)</li>
+                        <li>• Normale Tennis-Regeln nach ITF/DTB-Bestimmungen</li>
+                        <li>• Keine Vorteile (Deuce-Regel wie üblich)</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-yellow-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-yellow-800 mb-2">3.2 Satzregeln</h4>
+                      <p className="text-yellow-700 text-sm mb-2"><strong>Reguläre Sätze:</strong></p>
+                      <ul className="text-yellow-700 text-sm space-y-1 mb-3">
+                        <li>• Satz gewonnen bei 6 Games mit mindestens 2 Games Vorsprung</li>
+                        <li>• Bei 6:6 → Tiebreak bis 7 Punkte (mindestens 2 Punkte Vorsprung)</li>
+                        <li>• Maximum: 7:6 nach Tiebreak</li>
+                      </ul>
+                      <p className="text-yellow-700 text-sm mb-2"><strong>Match-Tiebreak:</strong></p>
+                      <ul className="text-yellow-700 text-sm space-y-1">
+                        <li>• Bei 1:1 Sätzen → Match-Tiebreak bis 10 Punkte</li>
+                        <li>• Mindestens 2 Punkte Vorsprung erforderlich</li>
+                        <li>• Ersetzt den dritten Satz</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold text-purple-800 mb-4 flex items-center">
+                    <span className="text-purple-600 mr-2">📊</span>
+                    4. Punktesystem
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-purple-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-purple-800 mb-2">4.1 Gruppenpunkte</h4>
+                      <ul className="text-purple-700 text-sm space-y-1">
+                        <li>• <strong>Sieg:</strong> 2 Punkte</li>
+                        <li>• <strong>Niederlage:</strong> 1 Punkt (Teilnahme-Bonus)</li>
+                        <li>• <strong>Nicht angetreten:</strong> 0 Punkte</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-purple-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-purple-800 mb-2">4.2 Tabellenplatz-Ermittlung</h4>
+                      <p className="text-purple-700 text-sm mb-2">Reihenfolge bei Punktgleichheit:</p>
+                      <ol className="text-purple-700 text-sm space-y-1">
+                        <li>1. Direkter Vergleich (Kopf-an-Kopf)</li>
+                        <li>2. Satzverhältnis (gewonnene:verlorene Sätze)</li>
+                        <li>3. Spielverhältnis (gewonnene:verlorene Spiele)</li>
+                        <li>4. Los-Entscheidung</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold text-red-800 mb-4 flex items-center">
+                    <span className="text-red-600 mr-2">📅</span>
+                    6. Termine und Fristen
+                  </h3>
+                  
+                  <div className="bg-red-50 rounded-lg p-4">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-red-200">
+                            <th className="text-left py-2 text-red-800">Phase</th>
+                            <th className="text-left py-2 text-red-800">Zeitraum</th>
+                            <th className="text-left py-2 text-red-800">Frist</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b border-red-100">
+                            <td className="py-2 text-red-700">Anmeldung</td>
+                            <td className="py-2 text-red-700">Bis 25. Mai 2025</td>
+                            <td className="py-2 text-red-700">Verbindlich</td>
+                          </tr>
+                          <tr className="border-b border-red-100">
+                            <td className="py-2 text-red-700">Gruppenphase</td>
+                            <td className="py-2 text-red-700">26. Mai - 30. Juni 2025</td>
+                            <td className="py-2 text-red-700">Alle Spiele</td>
+                          </tr>
+                          <tr>
+                            <td className="py-2 text-red-700">Endrunde</td>
+                            <td className="py-2 text-red-700">1. - 31. Juli 2025</td>
+                            <td className="py-2 text-red-700">Alle K.O.-Spiele</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <h4 className="font-semibold text-red-800 mb-2">Terminvereinbarung</h4>
+                      <ul className="text-red-700 text-sm space-y-1">
+                        <li>• Eigenverantwortlich zwischen den Spielern</li>
+                        <li>• Spiele können täglich zwischen 8:00 und 22:00 Uhr stattfinden</li>
+                        <li>• Absagen: Mindestens 24h vorher (außer Krankheit/Notfall)</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold text-indigo-800 mb-4 flex items-center">
+                    <span className="text-indigo-600 mr-2">📝</span>
+                    8. Ergebnismeldung
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-indigo-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-indigo-800 mb-2">8.1 Meldepflicht</h4>
+                      <ul className="text-indigo-700 text-sm space-y-1">
+                        <li>• Sofort nach Spielende in die App eintragen</li>
+                        <li>• Format: Satz 1, Satz 2, (Match-Tiebreak falls nötig)</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-indigo-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-indigo-800 mb-2">8.2 Protest und Einsprüche</h4>
+                      <ul className="text-indigo-700 text-sm space-y-1">
+                        <li>• Einspruchsfrist: 24 Stunden nach Ergebniseintragung</li>
+                        <li>• Entscheidung binnen 48 Stunden</li>
+                        <li>• Bei Unregelmäßigkeiten: Match wird wiederholt</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <span className="text-gray-600 mr-2">🏆</span>
+                    9. Preise und Ehrungen
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-gray-800 mb-2">9.1 Siegerehrung</h4>
+                      <ul className="text-gray-700 text-sm space-y-1">
+                        <li>• <strong>Termin:</strong> Direkt nach dem Finale</li>
+                        <li>• <strong>Ort:</strong> Vereinsheim TV Reicheneck</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-gray-800 mb-2">9.2 Preise</h4>
+                      <ul className="text-gray-700 text-sm space-y-1">
+                        <li>• <strong>1. Platz:</strong> Wanderpokal + Sachpreis</li>
+                        <li>• <strong>2. Platz:</strong> Sachpreis</li>
+                        <li>• <strong>3. Platz:</strong> Sachpreis</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold text-orange-800 mb-4 flex items-center">
+                    <span className="text-orange-600 mr-2">⚠️</span>
+                    10. Besondere Bestimmungen
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-orange-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-orange-800 mb-2">10.1 Verletzung/Krankheit</h4>
+                      <ul className="text-orange-700 text-sm space-y-1">
+                        <li>• Vor Turnierbeginn: Nachrückerregelung möglich</li>
+                        <li>• Während der Gruppenphase: Restliche Spiele werden als 0:2-Niederlagen gewertet</li>
+                        <li>• Während der Endrunde: Gegner kommt eine Runde weiter</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-orange-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-orange-800 mb-2">10.3 Schiedsrichter</h4>
+                      <ul className="text-orange-700 text-sm space-y-1">
+                        <li>• Selbst-Schiedsrichterei (jeder Spieler pfeift selbst)</li>
+                        <li>• Bei umstrittenen Entscheidungen: Punkt wiederholen</li>
+                        <li>• Streitfälle: Turnierleitung hinzuziehen</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-orange-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-orange-800 mb-2">10.4 Wetter</h4>
+                      <ul className="text-orange-700 text-sm space-y-1">
+                        <li>• Regen: Spiel wird unterbrochen, Fortsetzung möglich</li>
+                        <li>• Sturm/Gewitter: Sofortiger Spielabbruch</li>
+                        <li>• Extremhitze: Schatten-/Trinkpausen nach jedem Satz</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold text-teal-800 mb-4 flex items-center">
+                    <span className="text-teal-600 mr-2">📞</span>
+                    11. Kontakt und Organisation
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-teal-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-teal-800 mb-2">11.1 Turnierleitung</h4>
+                      <ul className="text-teal-700 text-sm space-y-1">
+                        <li>• <strong>Telefon:</strong> 01622303210</li>
+                        <li>• <strong>E-Mail:</strong> markus.vaitl@gmx.de</li>
+                        <li>• <strong>Erreichbarkeit:</strong> Täglich 18:00-20:00 Uhr</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-teal-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-teal-800 mb-2">11.3 Notfall-Kontakt</h4>
+                      <ul className="text-teal-700 text-sm space-y-1">
+                        <li>• Bei Verletzungen: Sofort <strong>112</strong> anrufen</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-100 border border-blue-300 rounded-lg p-6">
+                  <h3 className="text-xl font-semibold text-blue-800 mb-4 flex items-center">
+                    <span className="text-blue-600 mr-2">✅</span>
+                    12. Teilnahme-Bestätigung
+                  </h3>
+                  <p className="text-blue-700 mb-3">Mit der Anmeldung zur Vereinsmeisterschaft bestätigen alle Teilnehmer:</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <p className="text-blue-700 text-sm">✅ Kenntnis und Anerkennung dieses Regelwerks</p>
+                      <p className="text-blue-700 text-sm">✅ Eigenverantwortliche Terminvereinbarung</p>
+                      <p className="text-blue-700 text-sm">✅ Pünktliche und korrekte Ergebnismeldung</p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-blue-700 text-sm">✅ Fair Play und sportliches Verhalten</p>
+                      <p className="text-blue-700 text-sm">✅ Teilnahme an eigene Kosten (Platzmiete, Bälle)</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="text-center py-8">
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">🏆 Viel Erfolg bei der Vereinsmeisterschaft 2025!</h2>
                 <p className="text-lg text-gray-600 mb-4">Möge der/die Beste gewinnen! 🎾</p>
                 <div className="bg-gray-50 rounded-lg p-4 inline-block">
                   <p className="text-sm text-gray-600">
                     <strong>Stand:</strong> Juni 2025 | <strong>TV Reicheneck</strong><br/>
-                    App mit korrektem ITF/USTA Tennis-Ranking + Airtable-Integration
+                    Änderungen vorbehalten | Bei Fragen wenden Sie sich an die Turnierleitung
                   </p>
                 </div>
               </div>
@@ -1456,107 +1760,3 @@ const TennisChampionship = () => {
                           />
                         </div>
                       </div>
-                    </div>
-
-                    <ValidationAlert errors={validationErrors} />
-
-                    <button
-                      onClick={addNewMatch}
-                      disabled={!newMatch.player1 || !newMatch.player2 || validationErrors.length > 0 || isLoading}
-                      className={`w-full py-4 rounded-xl font-medium flex items-center justify-center space-x-2 transition-all duration-200 ${
-                        (!newMatch.player1 || !newMatch.player2 || validationErrors.length > 0 || isLoading)
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-green-500 text-white hover:bg-green-600'
-                      }`}
-                    >
-                      {isLoading ? (
-                        <>
-                          <RefreshCw size={20} className="animate-spin" />
-                          <span>Speichert...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Plus size={20} />
-                          <span>Ergebnis speichern</span>
-                        </>
-                      )}
-                    </button>
-
-                    <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <h4 className="text-green-800 font-medium mb-2">🎾 ITF/USTA Tennis-Ranking:</h4>
-                      <ul className="text-green-700 text-sm space-y-1">
-                        <li>• <strong>1. Match-Siege:</strong> Anzahl gewonnener Matches</li>
-                        <li>• <strong>2. Head-to-Head:</strong> Direkter Vergleich</li>
-                        <li>• <strong>3. Set-Prozentsatz:</strong> % gewonnener Sätze</li>
-                        <li>• <strong>4. Game-Prozentsatz:</strong> % gewonnener Games</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      <div className="container mx-auto px-4 py-6 md:py-8">
-        <nav className="flex flex-wrap justify-center gap-2 mb-8 md:mb-12">
-          <TabButton
-            id="overview"
-            label="Überblick"
-            icon={Trophy}
-            isActive={activeTab === 'overview'}
-            onClick={() => setActiveTab('overview')}
-          />
-          <TabButton
-            id="groups"
-            label="Gruppen"
-            icon={Users}
-            isActive={activeTab === 'groups'}
-            onClick={() => setActiveTab('groups')}
-          />
-          <TabButton
-            id="semifinal"
-            label="Endrunde"
-            icon={Trophy}
-            isActive={activeTab === 'semifinal'}
-            onClick={() => setActiveTab('semifinal')}
-          />
-          <TabButton
-            id="final"
-            label="Finale"
-            icon={Trophy}
-            isActive={activeTab === 'final'}
-            onClick={() => setActiveTab('final')}
-          />
-          <TabButton
-            id="rules"
-            label="Regelwerk"
-            icon={FileText}
-            isActive={activeTab === 'rules'}
-            onClick={() => setActiveTab('rules')}
-          />
-          <TabButton
-            id="entry"  
-            label="Eingabe"
-            icon={Plus}
-            isActive={activeTab === 'entry'}
-            onClick={() => setActiveTab('entry')}
-          />
-        </nav>
-
-        <main>{renderContent()}</main>
-        
-        <SuccessModal />
-      </div>
-    </div>
-  );
-};
-
-export default TennisChampionship;
