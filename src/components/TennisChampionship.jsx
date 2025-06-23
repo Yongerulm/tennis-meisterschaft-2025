@@ -1127,7 +1127,7 @@ const TennisChampionship = () => {
             
             <div className="mb-12">
               <h2 className="text-xl md:text-2xl font-light text-gray-800 mb-6 text-center">Gruppenphase</h2>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
                 {Object.entries(GROUPS).map(([groupName, players]) => (
                   <GroupCard key={groupName} groupName={groupName} players={players} />
                 ))}
@@ -1149,7 +1149,7 @@ const TennisChampionship = () => {
         return (
           <div>
             <h2 className="text-2xl md:text-3xl font-light text-gray-800 mb-8 text-center">Gruppenphase</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
               {Object.entries(GROUPS).map(([groupName, players]) => (
                 <GroupCard key={groupName} groupName={groupName} players={players} />
               ))}
