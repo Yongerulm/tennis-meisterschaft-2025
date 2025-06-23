@@ -1760,3 +1760,107 @@ const TennisChampionship = () => {
                           />
                         </div>
                       </div>
+                    </div>
+
+                    <ValidationAlert errors={validationErrors} />
+
+                    <button
+                      onClick={addNewMatch}
+                      disabled={!newMatch.player1 || !newMatch.player2 || validationErrors.length > 0 || isLoading}
+                      className={`w-full py-4 rounded-xl font-medium flex items-center justify-center space-x-2 transition-all duration-200 ${
+                        (!newMatch.player1 || !newMatch.player2 || validationErrors.length > 0 || isLoading)
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-green-500 text-white hover:bg-green-600'
+                      }`}
+                    >
+                      {isLoading ? (
+                        <>
+                          <RefreshCw size={20} className="animate-spin" />
+                          <span>Speichert...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus size={20} />
+                          <span>Ergebnis speichern</span>
+                        </>
+                      )}
+                    </button>
+
+                    <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <h4 className="text-green-800 font-medium mb-2">🎾 ITF/USTA Tennis-Ranking:</h4>
+                      <ul className="text-green-700 text-sm space-y-1">
+                        <li>• <strong>1. Match-Siege:</strong> Anzahl gewonnener Matches</li>
+                        <li>• <strong>2. Head-to-Head:</strong> Direkter Vergleich</li>
+                        <li>• <strong>3. Set-Prozentsatz:</strong> % gewonnener Sätze</li>
+                        <li>• <strong>4. Game-Prozentsatz:</strong> % gewonnener Games</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      <div className="container mx-auto px-4 py-6 md:py-8">
+        <nav className="flex flex-wrap justify-center gap-2 mb-8 md:mb-12">
+          <TabButton
+            id="overview"
+            label="Überblick"
+            icon={Trophy}
+            isActive={activeTab === 'overview'}
+            onClick={() => setActiveTab('overview')}
+          />
+          <TabButton
+            id="groups"
+            label="Gruppen"
+            icon={Users}
+            isActive={activeTab === 'groups'}
+            onClick={() => setActiveTab('groups')}
+          />
+          <TabButton
+            id="semifinal"
+            label="Endrunde"
+            icon={Trophy}
+            isActive={activeTab === 'semifinal'}
+            onClick={() => setActiveTab('semifinal')}
+          />
+          <TabButton
+            id="final"
+            label="Finale"
+            icon={Trophy}
+            isActive={activeTab === 'final'}
+            onClick={() => setActiveTab('final')}
+          />
+          <TabButton
+            id="rules"
+            label="Regelwerk"
+            icon={FileText}
+            isActive={activeTab === 'rules'}
+            onClick={() => setActiveTab('rules')}
+          />
+          <TabButton
+            id="entry"  
+            label="Eingabe"
+            icon={Plus}
+            isActive={activeTab === 'entry'}
+            onClick={() => setActiveTab('entry')}
+          />
+        </nav>
+
+        <main>{renderContent()}</main>
+        
+        <SuccessModal />
+      </div>
+    </div>
+  );
+};
+
+export default TennisChampionship;
