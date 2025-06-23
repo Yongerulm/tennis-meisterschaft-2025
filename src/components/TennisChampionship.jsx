@@ -1,6 +1,6 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/src/components/TennisChampionship.jsx b/src/components/TennisChampionship.jsx
-index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..fe49da01986d29a08e36b1172e4cdb2c307b5fdf 100644
+index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..cbc3dca0128adc389bac894394d68a239f11c0b7 100644
 --- a/src/components/TennisChampionship.jsx
 +++ b/src/components/TennisChampionship.jsx
 @@ -1,47 +1,48 @@
@@ -53,7 +53,7 @@ index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..fe49da01986d29a08e36b1172e4cdb2c
        return (typeof process !== 'undefined' && process.env && process.env[key]) || fallback;
      } catch (error) {
 diff --git a/src/components/TennisChampionship.jsx b/src/components/TennisChampionship.jsx
-index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..fe49da01986d29a08e36b1172e4cdb2c307b5fdf 100644
+index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..cbc3dca0128adc389bac894394d68a239f11c0b7 100644
 --- a/src/components/TennisChampionship.jsx
 +++ b/src/components/TennisChampionship.jsx
 @@ -485,101 +486,165 @@ const TennisChampionship = () => {
@@ -113,7 +113,7 @@ index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..fe49da01986d29a08e36b1172e4cdb2c
 +  }, [getQualifiedPlayers]);
 +
 +  const semifinalPairings = useMemo(() => {
-+    const qfMatches = quarterfinalPairings.map(([p1, p2]) => getMatch(p1, p2, 'semifinal'));
++    const qfMatches = quarterfinalPairings.map(([p1, p2]) => getMatch(p1, p2, 'quarterfinal'));
 +    const winners = qfMatches.map(m => m?.winner);
 +
 +    if (winners.some(w => !w)) return [];
@@ -157,7 +157,7 @@ index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..fe49da01986d29a08e36b1172e4cdb2c
  
 +  const getKOAvailableMatches = useCallback((round) => {
 +    if (round === 'quarterfinal') {
-+      return quarterfinalPairings.map(([p1, p2]) => [p1, p2, !!getMatch(p1, p2, 'semifinal')]);
++      return quarterfinalPairings.map(([p1, p2]) => [p1, p2, !!getMatch(p1, p2, 'quarterfinal')]);
 +    }
 +    if (round === 'semifinal') {
 +      return semifinalPairings.map(([p1, p2]) => [p1, p2, !!getMatch(p1, p2, 'semifinal')]);
@@ -223,10 +223,10 @@ index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..fe49da01986d29a08e36b1172e4cdb2c
        if (result.errors.length > 0) {
          alert('Validierungsfehler:\n\n' + result.errors.join('\n'));
 diff --git a/src/components/TennisChampionship.jsx b/src/components/TennisChampionship.jsx
-index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..fe49da01986d29a08e36b1172e4cdb2c307b5fdf 100644
+index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..cbc3dca0128adc389bac894394d68a239f11c0b7 100644
 --- a/src/components/TennisChampionship.jsx
 +++ b/src/components/TennisChampionship.jsx
-@@ -599,52 +664,55 @@ const TennisChampionship = () => {
+@@ -599,52 +664,57 @@ const TennisChampionship = () => {
          player2: newMatch.player2,
          set1: {
            player1: parseInt(newMatch.set1Player1) || 0,
@@ -256,9 +256,11 @@ index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..fe49da01986d29a08e36b1172e4cdb2c
 -                       match.phase === 'semifinal' ? 'Endrunde' : 'Finale';
 +      const phaseText = match.phase === 'group'
 +        ? `Gruppe ${match.group}`
-+        : match.phase === 'semifinal'
-+          ? (newMatch.round === 'quarterfinal' ? 'Viertelfinale' : 'Halbfinale')
-+          : 'Finale';
++        : match.phase === 'quarterfinal'
++          ? 'Viertelfinale'
++          : match.phase === 'semifinal'
++            ? 'Halbfinale'
++            : 'Finale';
        
        const statusText = connectionStatus === 'connected' ? 
          '✅ In Airtable gespeichert!' : 
@@ -285,10 +287,10 @@ index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..fe49da01986d29a08e36b1172e4cdb2c
    };
  
 diff --git a/src/components/TennisChampionship.jsx b/src/components/TennisChampionship.jsx
-index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..fe49da01986d29a08e36b1172e4cdb2c307b5fdf 100644
+index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..cbc3dca0128adc389bac894394d68a239f11c0b7 100644
 --- a/src/components/TennisChampionship.jsx
 +++ b/src/components/TennisChampionship.jsx
-@@ -946,78 +1014,159 @@ const TennisChampionship = () => {
+@@ -946,89 +1016,171 @@ const TennisChampionship = () => {
                                Sieger: {match.winner}
                              </span>
                            </div>
@@ -387,7 +389,7 @@ index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..fe49da01986d29a08e36b1172e4cdb2c
 +            <div>
 +              <h4 className="text-sm font-medium text-gray-700 mb-2">Viertelfinale</h4>
 +              <div className="space-y-2">
-+                {quarterfinalPairings.map(([p1, p2], idx) => renderMatch(p1, p2, getMatch(p1, p2, 'semifinal'), idx))}
++                {quarterfinalPairings.map(([p1, p2], idx) => renderMatch(p1, p2, getMatch(p1, p2, 'quarterfinal'), idx))}
 +              </div>
 +            </div>
 +            {semifinalPairings.length > 0 && (
@@ -443,13 +445,16 @@ index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..fe49da01986d29a08e36b1172e4cdb2c
  
    const AdminMatchList = () => {
      const allMatches = [...matches].sort((a, b) => {
-       const phaseOrder = { 'group': 1, 'semifinal': 2, 'final': 3 };
+-      const phaseOrder = { 'group': 1, 'semifinal': 2, 'final': 3 };
++      const phaseOrder = { 'group': 1, 'quarterfinal': 2, 'semifinal': 3, 'final': 4 };
        return phaseOrder[a.phase] - phaseOrder[b.phase] || a.id - b.id;
      });
  
      const getPhaseTitle = (match) => {
        if (match.phase === 'group') return `Gruppe ${match.group}`;
-       if (match.phase === 'semifinal') return 'Endrunde';
+-      if (match.phase === 'semifinal') return 'Endrunde';
++      if (match.phase === 'quarterfinal') return 'Viertelfinale';
++      if (match.phase === 'semifinal') return 'Halbfinale';
        if (match.phase === 'final') return 'Finale';
        return 'Unbekannt';
      };
@@ -464,11 +469,22 @@ index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..fe49da01986d29a08e36b1172e4cdb2c
          {allMatches.length === 0 ? (
            <div className="text-center py-12 text-gray-500">
              <Trophy className="mx-auto mb-4 opacity-30" size={48} />
+             <p>Noch keine Matches vorhanden</p>
+           </div>
+         ) : (
+           <div className="space-y-3">
+             {allMatches.map(match => (
+               <div key={match.id} className="border border-gray-200 rounded-lg p-3 md:p-4 hover:shadow-md transition-all duration-200">
+                 <div className="flex items-center justify-between">
+                   <div className="flex-1">
+                     <div className="flex items-center space-x-3 mb-2">
+                       <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
+                         {getPhaseTitle(match)}
 diff --git a/src/components/TennisChampionship.jsx b/src/components/TennisChampionship.jsx
-index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..fe49da01986d29a08e36b1172e4cdb2c307b5fdf 100644
+index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..cbc3dca0128adc389bac894394d68a239f11c0b7 100644
 --- a/src/components/TennisChampionship.jsx
 +++ b/src/components/TennisChampionship.jsx
-@@ -1618,74 +1767,132 @@ const TennisChampionship = () => {
+@@ -1618,74 +1770,132 @@ const TennisChampionship = () => {
                <div className="max-w-2xl mx-auto space-y-8">
                  <ConnectionStatusCard />
                  
@@ -515,7 +531,7 @@ index fa6a7a31d5aa77ad80fd6adfa1cc4f38694185dd..fe49da01986d29a08e36b1172e4cdb2c
 +                              setNewMatch({
 +                                ...newMatch,
 +                                round,
-+                                phase: 'semifinal',
++                                phase: 'quarterfinal',
 +                                group: 'KO',
 +                                player1: '',
 +                                player2: ''
