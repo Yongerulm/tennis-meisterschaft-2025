@@ -2314,7 +2314,7 @@ groupThirds.sort((a, b) => {
   );
 };
 
-export default TennisChampionship;="text-green-700 text-sm mb-2"><strong>Zeitraum:</strong> Bis zum 30. Juni 2025</p>
+export default TennisChampionship;"text-green-700 text-sm mb-2"><strong>Zeitraum:</strong> Bis zum 30. Juni 2025</p>
                       <p className="text-green-700 text-sm mb-2"><strong>Spielmodus:</strong></p>
                       <ul className="text-green-700 text-sm space-y-1 list-none">
                         <li>• Jeder gegen jeden innerhalb der Gruppe</li>
