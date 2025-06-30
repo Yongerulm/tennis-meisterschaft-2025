@@ -1599,6 +1599,8 @@ groupThirds.sort((a, b) => {
                   <GroupCard key={groupName} groupName={groupName} players={players} />
                 ))}
                 </div>
+               </div>
+               </div>
               </div>
             </div>
           </div>
