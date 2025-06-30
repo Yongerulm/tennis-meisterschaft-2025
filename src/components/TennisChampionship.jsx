@@ -54,7 +54,7 @@ const TennisChampionship = () => {
   const AIRTABLE_CONFIG = {
     baseId: getEnvVar('REACT_APP_AIRTABLE_BASE_ID', 'app5txy8Rr2jz0R0i'),
     tableName: getEnvVar('REACT_APP_AIRTABLE_TABLE_NAME', 'Table 1'),
-    apiKey: getEnvVar('REACT_APP_AIRTABLE_API_KEY', 'patstaBt42aLHLJBy.1e7e4f8ca1779f0e09e16c92137930ef615d85dc77ecf308f44e35b608a00c83'),
+    apiKey: getEnvVar('REACT_APP_AIRTABLE_API_KEY'),
     get apiUrl() {
       return `https://api.airtable.com/v0/${this.baseId}/${this.tableName}`;
     }
@@ -1599,11 +1599,11 @@ groupThirds.sort((a, b) => {
                   <GroupCard key={groupName} groupName={groupName} players={players} />
                 ))}
                 </div>
-               </div>
-               </div>
               </div>
             </div>
           </div>
+        </div>
+      </div>
         );
 
       case 'groups':
