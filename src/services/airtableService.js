@@ -4,15 +4,22 @@
 import { useState } from 'react';
 
 // Airtable Konfiguration
-const AIRTABLE_API_KEY = 'pata8AegwOwmtid9t.f9bbcc2ac3248d3712e9443d9df066c7fcc922683c05401b6028a5892a5b25e9'; // DEINE API-KEY HIER
-const AIRTABLE_BASE_ID = 'app5txy8Rr2jz0R0i'; // DEINE BASE-ID HIER
-const AIRTABLE_TABLE_NAME = 'Table 1';
+const AIRTABLE_API_KEY = process.env.REACT_APP_AIRTABLE_API_KEY || '';
+const AIRTABLE_BASE_ID = process.env.REACT_APP_AIRTABLE_BASE_ID || '';
+const AIRTABLE_TABLE_NAME = process.env.REACT_APP_AIRTABLE_TABLE_NAME || 'Table 1';
 
-const AIRTABLE_API_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_NAME}`;
+const AIRTABLE_API_URL =
+  AIRTABLE_BASE_ID && AIRTABLE_TABLE_NAME
+    ? `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_NAME}`
+    : '';
 
 // Airtable API Call
 const callAirtable = async (method = 'GET', data = null, recordId = null) => {
   try {
+    if (!AIRTABLE_API_URL || !AIRTABLE_API_KEY) {
+      throw new Error('Airtable Verbindung nicht konfiguriert');
+    }
+
     const url = recordId ? `${AIRTABLE_API_URL}/${recordId}` : AIRTABLE_API_URL;
     
     const options = {

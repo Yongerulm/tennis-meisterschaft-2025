@@ -31,6 +31,20 @@ npm install
 cp .env.example .env
 # .env mit deinen Airtable Daten befuellen
 
+
+### Airtable einrichten
+In der `.env` Datei muessen drei Variablen gesetzt sein, damit die App auf
+deine Airtable Basis zugreifen kann:
+
+```env
+REACT_APP_AIRTABLE_BASE_ID=deine_base_id
+REACT_APP_AIRTABLE_TABLE_NAME=Matches
+REACT_APP_AIRTABLE_API_KEY=dein_api_key
+```
+
+Beim Deploy auf Netlify muessen dieselben Variablen in den Build Settings
+hinterlegt werden.
+
 # Tailwind CSS konfigurieren
 npx tailwindcss init -p
 
