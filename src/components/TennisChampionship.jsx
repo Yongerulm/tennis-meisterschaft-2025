@@ -2317,7 +2317,7 @@ groupThirds.sort((a, b) => {
         <main>{renderContent()}</main>
         
         <SuccessModal />
-     
+        </div> {/* ← Das schließt <div className="min-h-screen ..."> */}
     </div>
   );
 };
