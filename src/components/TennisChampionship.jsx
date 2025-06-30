@@ -2322,5 +2322,4 @@ return (
 );
 
 };
-
 export default TennisChampionship;
