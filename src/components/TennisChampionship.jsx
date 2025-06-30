@@ -2269,52 +2269,54 @@ groupThirds.sort((a, b) => {
 return (
   <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
     <div className="container mx-auto px-4 py-6 md:py-8">
-          <TabButton
-            id="overview"
-            label="Überblick"
-            icon={Trophy}
-            isActive={activeTab === 'overview'}
-            onClick={() => setActiveTab('overview')}
-          />
-          <TabButton
-            id="groups"
-            label="Gruppen"
-            icon={Users}
-            isActive={activeTab === 'groups'}
-            onClick={() => setActiveTab('groups')}
-          />
-          <TabButton
-            id="semifinal"
-            label="Endrunde"
-            icon={Trophy}
-            isActive={activeTab === 'semifinal'}
-            onClick={() => setActiveTab('semifinal')}
-          />
-          <TabButton
-            id="final"
-            label="Finale"
-            icon={Trophy}
-            isActive={activeTab === 'final'}
-            onClick={() => setActiveTab('final')}
-          />
-          <TabButton
-            id="rules"
-            label="Regelwerk"
-            icon={FileText}
-            isActive={activeTab === 'rules'}
-            onClick={() => setActiveTab('rules')}
-          />
-          <TabButton
-            id="entry"  
-            label="Eingabe"
-            icon={Plus}
-            isActive={activeTab === 'entry'}
-            onClick={() => setActiveTab('entry')}
-          />
-        </nav>
 
-        <main>{renderContent()}</main>
-        
+      <nav className="flex flex-wrap justify-center gap-2 mb-8 md:mb-12">
+        <TabButton
+          id="overview"
+          label="Überblick"
+          icon={Trophy}
+          isActive={activeTab === 'overview'}
+          onClick={() => setActiveTab('overview')}
+        />
+        <TabButton
+          id="groups"
+          label="Gruppen"
+          icon={Users}
+          isActive={activeTab === 'groups'}
+          onClick={() => setActiveTab('groups')}
+        />
+        <TabButton
+          id="semifinal"
+          label="Endrunde"
+          icon={Trophy}
+          isActive={activeTab === 'semifinal'}
+          onClick={() => setActiveTab('semifinal')}
+        />
+        <TabButton
+          id="final"
+          label="Finale"
+          icon={Trophy}
+          isActive={activeTab === 'final'}
+          onClick={() => setActiveTab('final')}
+        />
+        <TabButton
+          id="rules"
+          label="Regelwerk"
+          icon={FileText}
+          isActive={activeTab === 'rules'}
+          onClick={() => setActiveTab('rules')}
+        />
+        <TabButton
+          id="entry"
+          label="Eingabe"
+          icon={Plus}
+          isActive={activeTab === 'entry'}
+          onClick={() => setActiveTab('entry')}
+        />
+      </nav> {/* ✅ jetzt korrekt geöffnet und geschlossen */}
+
+      <main>{renderContent()}</main>
+
       <SuccessModal />
     </div>
   </div>
