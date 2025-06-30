@@ -2313,5 +2313,4 @@ groupThirds.sort((a, b) => {
     </div>
   );
 };
-
 export default TennisChampionship;
