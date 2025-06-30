@@ -27,6 +27,10 @@ cd tennis-meisterschaft-2025
 # Abhängigkeiten installieren
 npm install
 
+# Beispiel-Umgebungsdatei kopieren
+cp .env.example .env
+# .env mit deinen Airtable Daten befuellen
+
 # Tailwind CSS konfigurieren
 npx tailwindcss init -p
 
