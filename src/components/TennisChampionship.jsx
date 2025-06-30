@@ -2317,8 +2317,10 @@ return (
         <main>{renderContent()}</main>
         
               <SuccessModal />
-    </div> {/* ← schließt .container */}
-  </div>   {/* ← schließt .min-h-screen */}
+    </div> 
+    {/* ← schließt .container */}
+</div> 
+    {/* schließt min-h-screen */}
 );
 };
 
