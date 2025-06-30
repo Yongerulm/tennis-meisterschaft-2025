@@ -1574,7 +1574,11 @@ groupThirds.sort((a, b) => {
               </p>
             </div>
             
+
+            <div className="space-y-12 mb-24 md:mb-32">
+
             <div className="space-y-12 mb-16 md:mb-20">
+
               <h2 className="text-xl md:text-2xl font-light text-gray-800 text-center mb-8 md:mb-10">K.O.-Phase</h2>
 
               <KOBracket phase="semifinal" title="K.O.-Gruppen" />
@@ -1584,7 +1588,11 @@ groupThirds.sort((a, b) => {
               </div>
             </div>
 
+
+            <div className="pt-12 md:pt-16 border-t-2 border-gray-200">
+
             <div className="pt-8 md:pt-12 border-t-2 border-gray-200">
+
               <h2 className="text-xl md:text-2xl font-light text-gray-800 mb-8 md:mb-10 text-center">Gruppenphase</h2>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 md:gap-12 lg:gap-16">
                 {Object.entries(GROUPS).map(([groupName, players]) => (
