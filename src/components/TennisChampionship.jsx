@@ -19,6 +19,7 @@ const TennisChampionship = () => {
   // New Match Form State
   const [newMatch, setNewMatch] = useState({
     group: 'A',
+    koGroup: 'A',
     phase: 'group',
     player1: '',
     player2: '',
@@ -82,6 +83,55 @@ const TennisChampionship = () => {
       player2: 'Michael',
       set1: { player1: 6, player2: 2 },
       set2: { player1: 6, player2: 4 },
+      winner: 'Fabi',
+      status: 'completed',
+      timestamp: new Date().toISOString()
+    },
+    {
+      id: 3,
+      group: 'A',
+      phase: 'group',
+      player1: 'Henning',
+      player2: 'Fabi',
+      set1: { player1: 6, player2: 3 },
+      set2: { player1: 6, player2: 4 },
+      winner: 'Henning',
+      status: 'completed',
+      timestamp: new Date().toISOString()
+    },
+    {
+      id: 4,
+      group: 'A',
+      phase: 'group',
+      player1: 'Julia',
+      player2: 'Michael',
+      set1: { player1: 6, player2: 4 },
+      set2: { player1: 4, player2: 6 },
+      tiebreak: { player1: 10, player2: 8 },
+      winner: 'Julia',
+      status: 'completed',
+      timestamp: new Date().toISOString()
+    },
+    {
+      id: 5,
+      group: 'A',
+      phase: 'group',
+      player1: 'Henning',
+      player2: 'Michael',
+      set1: { player1: 6, player2: 1 },
+      set2: { player1: 6, player2: 2 },
+      winner: 'Henning',
+      status: 'completed',
+      timestamp: new Date().toISOString()
+    },
+    {
+      id: 6,
+      group: 'A',
+      phase: 'group',
+      player1: 'Julia',
+      player2: 'Fabi',
+      set1: { player1: 2, player2: 6 },
+      set2: { player1: 3, player2: 6 },
       winner: 'Fabi',
       status: 'completed',
       timestamp: new Date().toISOString()
@@ -152,6 +202,7 @@ const TennisChampionship = () => {
         const airtableMatches = response.records.map(record => ({
           id: record.fields.ID,
           group: record.fields.Gruppe,
+          koGroup: record.fields.KOGruppe,
           phase: record.fields.Phase,
           player1: record.fields.Spieler1,
           player2: record.fields.Spieler2,
@@ -206,6 +257,7 @@ const TennisChampionship = () => {
         fields: {
           ID: matchData.id,
           Gruppe: matchData.group,
+          KOGruppe: matchData.koGroup,
           Phase: matchData.phase,
           Spieler1: matchData.player1,
           Spieler2: matchData.player2,
@@ -378,6 +430,8 @@ const TennisChampionship = () => {
         setsLost: 0,
         gamesWon: 0,
         gamesLost: 0,
+        setDifference: 0,
+        gameDifference: 0,
         setPercentage: 0,
         gamePercentage: 0
       };
@@ -427,15 +481,28 @@ const TennisChampionship = () => {
     Object.values(playerStats).forEach(player => {
       const totalSets = player.setsWon + player.setsLost;
       const totalGames = player.gamesWon + player.gamesLost;
+      player.setDifference = player.setsWon - player.setsLost;
+      player.gameDifference = player.gamesWon - player.gamesLost;
       player.setPercentage = totalSets > 0 ? (player.setsWon / totalSets * 100) : 0;
       player.gamePercentage = totalGames > 0 ? (player.gamesWon / totalGames * 100) : 0;
     });
 
     return Object.values(playerStats).sort((a, b) => {
+      // Primär: Anzahl Siege
       if (b.wins !== a.wins) return b.wins - a.wins;
+      
+      // Sekundär: Satzdifferenz (nicht Prozentsatz!)
+      if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference;
+      
+      // Tertiär: Satzprozentsatz
       if (Math.abs(b.setPercentage - a.setPercentage) > 0.1) {
         return b.setPercentage - a.setPercentage;
       }
+      
+      // Quaternär: Gamedifferenz
+      if (b.gameDifference !== a.gameDifference) return b.gameDifference - a.gameDifference;
+      
+      // Final: Game-Prozentsatz
       return b.gamePercentage - a.gamePercentage;
     });
   }, [matches]);
@@ -454,7 +521,10 @@ const TennisChampionship = () => {
           group: groupName,
           position: 1,
           wins: table[0].wins,
-          setPercentage: table[0].setPercentage
+          setDifference: table[0].setDifference,
+          setPercentage: table[0].setPercentage,
+          setsWon: table[0].setsWon,
+          setsLost: table[0].setsLost
         });
       }
       if (table.length >= 2) {
@@ -463,7 +533,10 @@ const TennisChampionship = () => {
           group: groupName,
           position: 2,
           wins: table[1].wins,
-          setPercentage: table[1].setPercentage
+          setDifference: table[1].setDifference,
+          setPercentage: table[1].setPercentage,
+          setsWon: table[1].setsWon,
+          setsLost: table[1].setsLost
         });
       }
       if (table.length >= 3) {
@@ -472,26 +545,43 @@ const TennisChampionship = () => {
           group: groupName,
           position: 3,
           wins: table[2].wins,
+     //codex/extend-groupthirds-with-gamepercentage
           setPercentage: table[2].setPercentage,
           gamePercentage: table[2].gamePercentage
+
+          setDifference: table[2].setDifference,
+          setPercentage: table[2].setPercentage,
+          setsWon: table[2].setsWon,
+          setsLost: table[2].setsLost
+          main
         });
       }
     });
 
+    // Sortiere jede Positionsgruppe
     groupFirsts.sort((a, b) => {
       if (b.wins !== a.wins) return b.wins - a.wins;
+      if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference;
       return b.setPercentage - a.setPercentage;
     });
+    
     groupSeconds.sort((a, b) => {
       if (b.wins !== a.wins) return b.wins - a.wins;
+      if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference;
       return b.setPercentage - a.setPercentage;
     });
+    
     groupThirds.sort((a, b) => {
       if (b.wins !== a.wins) return b.wins - a.wins;
+     //codex/extend-groupthirds-with-gamepercentage
       if (Math.abs(b.setPercentage - a.setPercentage) > 0.1) {
         return b.setPercentage - a.setPercentage;
       }
       return b.gamePercentage - a.gamePercentage;
+
+      if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference;
+      return b.setPercentage - a.setPercentage;
+    main
     });
 
     qualified.push(...groupFirsts);
@@ -500,6 +590,38 @@ const TennisChampionship = () => {
 
     return qualified;
   }, [calculateGroupTable]);
+
+  // K.O. Gruppen-Verteilung
+  const getKOGroups = useMemo(() => {
+    if (getQualifiedPlayers.length < 8) {
+      return { A: [], B: [] };
+    }
+
+    // Sortiere qualifizierte Spieler nach Position und Ranking
+    const firsts = getQualifiedPlayers.filter(p => p.position === 1);
+    const seconds = getQualifiedPlayers.filter(p => p.position === 2);
+    const thirds = getQualifiedPlayers.filter(p => p.position === 3);
+
+    // Verteilung auf K.O.-Gruppen (Snake-Draft für Fairness)
+    const koGroupA = [];
+    const koGroupB = [];
+
+    // Verteile Gruppensieger: 1->A, 2->B, 3->A
+    if (firsts[0]) koGroupA.push(firsts[0]);
+    if (firsts[1]) koGroupB.push(firsts[1]);
+    if (firsts[2]) koGroupA.push(firsts[2]);
+
+    // Verteile Gruppenzweite: 1->B, 2->A, 3->B
+    if (seconds[0]) koGroupB.push(seconds[0]);
+    if (seconds[1]) koGroupA.push(seconds[1]);
+    if (seconds[2]) koGroupB.push(seconds[2]);
+
+    // Verteile beste Dritte: 1->A, 2->B
+    if (thirds[0]) koGroupA.push(thirds[0]);
+    if (thirds[1]) koGroupB.push(thirds[1]);
+
+    return { A: koGroupA, B: koGroupB };
+  }, [getQualifiedPlayers]);
 
   const generatePairings = (players) => {
     const pairings = [];
@@ -511,29 +633,387 @@ const TennisChampionship = () => {
     return pairings;
   };
 
-  const getAvailableMatches = useCallback((group) => {
-    const groupPlayers = GROUPS[group];
-    const availableMatches = [];
+  // K.O. Gruppen-Tabelle berechnen
+  const calculateKOGroupTable = useCallback((groupName) => {
+    const groupPlayers = getKOGroups[groupName];
+    if (!groupPlayers || groupPlayers.length === 0) return [];
     
-    for (let i = 0; i < groupPlayers.length; i++) {
-      for (let j = i + 1; j < groupPlayers.length; j++) {
-        const player1 = groupPlayers[i];
-        const player2 = groupPlayers[j];
+    const koMatches = matches.filter(m => 
+      m.phase === 'semifinal' && 
+      m.koGroup === groupName && 
+      m.status === 'completed'
+    );
+    
+    const playerStats = {};
+    groupPlayers.forEach(player => {
+      playerStats[player.name] = {
+        name: player.name,
+        originalGroup: player.group,
+        originalPosition: player.position,
+        matches: 0,
+        wins: 0,
+        losses: 0,
+        setsWon: 0,
+        setsLost: 0,
+        gamesWon: 0,
+        gamesLost: 0,
+        setDifference: 0,
+        gameDifference: 0,
+        setPercentage: 0,
+        gamePercentage: 0
+      };
+    });
+
+    koMatches.forEach(match => {
+      const p1 = match.player1;
+      const p2 = match.player2;
+      
+      if (playerStats[p1] && playerStats[p2]) {
+        playerStats[p1].matches++;
+        playerStats[p2].matches++;
         
-        const existingMatch = matches.find(m => 
-          m.group === group && 
-          m.status === 'completed' &&
-          ((m.player1 === player1 && m.player2 === player2) || 
-           (m.player1 === player2 && m.player2 === player1))
-        );
+        let p1Sets = 0, p2Sets = 0;
         
-        if (!existingMatch || isAdminMode) {
-          availableMatches.push([player1, player2, !!existingMatch]);
+        if (match.set1.player1 > match.set1.player2) p1Sets++; else p2Sets++;
+        playerStats[p1].gamesWon += match.set1.player1;
+        playerStats[p1].gamesLost += match.set1.player2;
+        playerStats[p2].gamesWon += match.set1.player2;
+        playerStats[p2].gamesLost += match.set1.player1;
+        
+        if (match.set2.player1 > match.set2.player2) p1Sets++; else p2Sets++;
+        playerStats[p1].gamesWon += match.set2.player1;
+        playerStats[p1].gamesLost += match.set2.player2;
+        playerStats[p2].gamesWon += match.set2.player2;
+        playerStats[p2].gamesLost += match.set2.player1;
+        
+        if (match.tiebreak) {
+          if (match.tiebreak.player1 > match.tiebreak.player2) p1Sets++; else p2Sets++;
+        }
+        
+        playerStats[p1].setsWon += p1Sets;
+        playerStats[p1].setsLost += p2Sets;
+        playerStats[p2].setsWon += p2Sets;
+        playerStats[p2].setsLost += p1Sets;
+        
+        if (match.winner === p1) {
+          playerStats[p1].wins++;
+          playerStats[p2].losses++;
+        } else if (match.winner === p2) {
+          playerStats[p2].wins++;
+          playerStats[p1].losses++;
         }
       }
+    });
+
+    Object.values(playerStats).forEach(player => {
+      const totalSets = player.setsWon + player.setsLost;
+      const totalGames = player.gamesWon + player.gamesLost;
+      player.setDifference = player.setsWon - player.setsLost;
+      player.gameDifference = player.gamesWon - player.gamesLost;
+      player.setPercentage = totalSets > 0 ? (player.setsWon / totalSets * 100) : 0;
+      player.gamePercentage = totalGames > 0 ? (player.gamesWon / totalGames * 100) : 0;
+    });
+
+    return Object.values(playerStats).sort((a, b) => {
+      if (b.wins !== a.wins) return b.wins - a.wins;
+      if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference;
+      if (Math.abs(b.setPercentage - a.setPercentage) > 0.1) {
+        return b.setPercentage - a.setPercentage;
+      }
+      if (b.gameDifference !== a.gameDifference) return b.gameDifference - a.gameDifference;
+      return b.gamePercentage - a.gamePercentage;
+    });
+  }, [getKOGroups, matches]);
+
+  const KOGroupCard = ({ groupName, players }) => {
+    const tableData = useMemo(() => calculateKOGroupTable(groupName), [groupName]);
+    const totalMatches = generatePairings(players.map(p => p.name)).length;
+    const playedMatches = matches.filter(m => 
+      m.phase === 'semifinal' && 
+      m.koGroup === groupName && 
+      m.status === 'completed'
+    ).length;
+    
+    return (
+      <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-4 md:p-6 hover:shadow-2xl hover:border-blue-200 transition-all duration-300">
+        <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-4 flex items-center justify-between">
+          <div className="flex items-center">
+            <Trophy className="mr-2 text-blue-500" size={20} />
+            K.O. Gruppe {groupName}
+          </div>
+          <span className="text-sm text-gray-500">
+            {playedMatches}/{totalMatches} Matches
+          </span>
+        </h3>
+        
+        <div className="mb-6">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Tabelle</h4>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-2 px-1 text-xs font-medium text-gray-500">Platz</th>
+                  <th className="text-left py-2 px-2 text-xs font-medium text-gray-500">Spieler</th>
+                  <th className="text-center py-2 px-1 text-xs font-medium text-gray-500">Vorr.</th>
+                  <th className="text-center py-2 px-1 text-xs font-medium text-gray-500">S</th>
+                  <th className="text-center py-2 px-1 text-xs font-medium text-gray-500">N</th>
+                  <th className="text-center py-2 px-1 text-xs font-medium text-gray-500">Sätze</th>
+                  <th className="text-center py-2 px-1 text-xs font-medium text-gray-500">Games</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tableData.map((player, index) => (
+                  <tr key={player.name} className={`border-b border-gray-100 ${
+                    index === 0 ? 'bg-green-50' : index === 1 ? 'bg-blue-50' : ''
+                  }`}>
+                    <td className="py-2 px-1 text-center">
+                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+                        index === 0 ? 'bg-yellow-500 text-white' : 
+                        index === 1 ? 'bg-gray-400 text-white' : 
+                        'bg-gray-200 text-gray-700'
+                      }`}>
+                        {index + 1}
+                      </span>
+                    </td>
+                    <td className="py-2 px-2">
+                      <div>
+                        <span className="font-medium text-gray-800">{player.name}</span>
+                        <span className="text-xs text-gray-500 ml-1">
+                          ({player.originalGroup}{player.originalPosition})
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-2 px-1 text-center text-xs text-gray-600">
+                      Gr.{player.originalGroup}
+                    </td>
+                    <td className="py-2 px-1 text-center font-bold text-green-600">{player.wins}</td>
+                    <td className="py-2 px-1 text-center text-red-600">{player.losses}</td>
+                    <td className="py-2 px-1 text-center text-gray-600 text-xs">
+                      {player.setsWon}:{player.setsLost}
+                    </td>
+                    <td className="py-2 px-1 text-center text-gray-600 text-xs">
+                      {player.gamesWon}:{player.gamesLost}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {playedMatches > 0 && (
+            <div className="text-xs text-gray-500 mt-2">
+              <p>🥇 Platz 1 & 2 qualifizieren sich fürs Finale</p>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Matches</h4>
+          <div className="space-y-2">
+            {generatePairings(players.map(p => p.name)).map((pairing, index) => {
+              const match = matches.find(m => 
+                m.phase === 'semifinal' && 
+                m.koGroup === groupName &&
+                ((m.player1 === pairing[0] && m.player2 === pairing[1]) || 
+                 (m.player1 === pairing[1] && m.player2 === pairing[0]))
+              );
+              const isCompleted = match && match.status === 'completed';
+              
+              return (
+                <div key={index} className={`p-3 rounded-lg border transition-all duration-200 ${
+                  isCompleted ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-800 mb-1">
+                        {pairing[0]} vs {pairing[1]}
+                      </div>
+                      
+                      {isCompleted && match.set1 && (
+                        <div className="text-sm text-gray-600">
+                          <div className="flex flex-wrap items-center gap-2 md:gap-4">
+                            <span className="flex items-center space-x-1">
+                              <span className="text-xs text-gray-500">Satz 1:</span>
+                              <span className="font-mono font-medium">
+                                {match.set1.player1}:{match.set1.player2}
+                              </span>
+                            </span>
+                            <span className="flex items-center space-x-1">
+                              <span className="text-xs text-gray-500">Satz 2:</span>
+                              <span className="font-mono font-medium">
+                                {match.set2.player1}:{match.set2.player2}
+                              </span>
+                            </span>
+                            {match.tiebreak && (
+                              <span className="flex items-center space-x-1">
+                                <span className="text-xs text-gray-500">TB:</span>
+                                <span className="font-mono font-medium">
+                                  {match.tiebreak.player1}:{match.tiebreak.player2}
+                                </span>
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-1 flex items-center">
+                            <Trophy className="w-3 h-3 text-yellow-500 mr-1" />
+                            <span className="text-xs font-medium text-gray-700">
+                              Sieger: {match.winner}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ml-3 ${
+                      isCompleted 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {isCompleted ? 'Gespielt' : 'Ausstehend'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const KOBracket = ({ phase, title }) => {
+    if (phase === 'semifinal') {
+      if (getQualifiedPlayers.length < 8) {
+        return (
+          <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-6 hover:shadow-2xl hover:border-blue-200 transition-all duration-300">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+              <Trophy className="mr-2 text-blue-500" size={20} />
+              {title}
+            </h3>
+            <div className="text-center py-12 text-gray-500">
+              <Trophy className="mx-auto mb-4 opacity-30" size={48} />
+              <p>Gruppenphase noch nicht abgeschlossen</p>
+              <p className="text-sm mt-2">Noch {8 - getQualifiedPlayers.length} Plätze offen</p>
+            </div>
+          </div>
+        );
+      }
+
+      // K.O.-Phase mit 2 Gruppen
+      return (
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <KOGroupCard groupName="A" players={getKOGroups.A} />
+            <KOGroupCard groupName="B" players={getKOGroups.B} />
+          </div>
+        </div>
+      );
     }
-    return availableMatches;
-  }, [matches, isAdminMode]);
+
+    // Finale
+    if (phase === 'final') {
+      const koGroupA = calculateKOGroupTable('A');
+      const koGroupB = calculateKOGroupTable('B');
+      const finalists = [];
+      
+      if (koGroupA.length >= 2) {
+        finalists.push(koGroupA[0], koGroupA[1]);
+      }
+      if (koGroupB.length >= 2) {
+        finalists.push(koGroupB[0], koGroupB[1]);
+      }
+
+      if (finalists.length < 4) {
+        return (
+          <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-6 hover:shadow-2xl hover:border-blue-200 transition-all duration-300">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+              <Trophy className="mr-2 text-blue-500" size={20} />
+              {title}
+            </h3>
+            <div className="text-center py-12 text-gray-500">
+              <Trophy className="mx-auto mb-4 opacity-30" size={48} />
+              <p>K.O.-Gruppen noch nicht abgeschlossen</p>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-6 hover:shadow-2xl hover:border-blue-200 transition-all duration-300">
+          <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+            <Trophy className="mr-2 text-blue-500" size={20} />
+            {title}
+          </h3>
+          <div className="text-center py-6">
+            <p className="text-gray-600 mb-4">Die Top 2 aus jeder K.O.-Gruppe spielen im Finale</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {finalists.slice(0, 4).map((player, index) => (
+                <div key={index} className="bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-300 rounded-lg p-4">
+                  <div className="font-semibold text-gray-800">{player.name}</div>
+                  <div className="text-sm text-gray-600">
+                    K.O. Gruppe {index < 2 ? 'A' : 'B'} - Platz {(index % 2) + 1}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const getAvailableMatches = useCallback((phase, groupOrKoGroup) => {
+    if (phase === 'group') {
+      const groupPlayers = GROUPS[groupOrKoGroup];
+      const availableMatches = [];
+      
+      for (let i = 0; i < groupPlayers.length; i++) {
+        for (let j = i + 1; j < groupPlayers.length; j++) {
+          const player1 = groupPlayers[i];
+          const player2 = groupPlayers[j];
+          
+          const existingMatch = matches.find(m => 
+            m.group === groupOrKoGroup && 
+            m.status === 'completed' &&
+            ((m.player1 === player1 && m.player2 === player2) || 
+             (m.player1 === player2 && m.player2 === player1))
+          );
+          
+          if (!existingMatch || isAdminMode) {
+            availableMatches.push([player1, player2, !!existingMatch]);
+          }
+        }
+      }
+      return availableMatches;
+    } else if (phase === 'semifinal') {
+      const koGroupPlayers = getKOGroups[groupOrKoGroup];
+      if (!koGroupPlayers || koGroupPlayers.length === 0) return [];
+      
+      const availableMatches = [];
+      const playerNames = koGroupPlayers.map(p => p.name);
+      
+      for (let i = 0; i < playerNames.length; i++) {
+        for (let j = i + 1; j < playerNames.length; j++) {
+          const player1 = playerNames[i];
+          const player2 = playerNames[j];
+          
+          const existingMatch = matches.find(m => 
+            m.phase === 'semifinal' &&
+            m.koGroup === groupOrKoGroup && 
+            m.status === 'completed' &&
+            ((m.player1 === player1 && m.player2 === player2) || 
+             (m.player1 === player2 && m.player2 === player1))
+          );
+          
+          if (!existingMatch || isAdminMode) {
+            availableMatches.push([player1, player2, !!existingMatch]);
+          }
+        }
+      }
+      return availableMatches;
+    }
+    return [];
+  }, [matches, isAdminMode, getKOGroups]);
 
   const handleLogin = () => {
     if (loginPin === correctPin) {
@@ -561,6 +1041,7 @@ const TennisChampionship = () => {
   const resetForm = () => {
     setNewMatch({
       group: 'A',
+      koGroup: 'A',
       phase: 'group',
       player1: '',
       player2: '',
@@ -599,7 +1080,8 @@ const TennisChampionship = () => {
 
       const match = {
         id: nextMatchId,
-        group: newMatch.group === 'KO' ? undefined : newMatch.group,
+        group: newMatch.phase === 'group' ? newMatch.group : undefined,
+        koGroup: newMatch.phase === 'semifinal' ? newMatch.koGroup : undefined,
         phase: newMatch.phase,
         player1: newMatch.player1,
         player2: newMatch.player2,
@@ -628,7 +1110,7 @@ const TennisChampionship = () => {
       setNextMatchId(nextMatchId + 1);
       
       const phaseText = match.phase === 'group' ? `Gruppe ${match.group}` : 
-                       match.phase === 'semifinal' ? 'Endrunde' : 'Finale';
+                       match.phase === 'semifinal' ? `K.O. Gruppe ${match.koGroup}` : 'Finale';
       
       const statusText = connectionStatus === 'connected' ? 
         '✅ In Airtable gespeichert!' : 
@@ -856,7 +1338,7 @@ const TennisChampionship = () => {
                   <th className="text-center py-2 px-1 text-xs font-medium text-gray-500">S</th>
                   <th className="text-center py-2 px-1 text-xs font-medium text-gray-500">N</th>
                   <th className="text-center py-2 px-1 text-xs font-medium text-gray-500">Sätze</th>
-                  <th className="text-center py-2 px-1 text-xs font-medium text-gray-500">Set%</th>
+                  <th className="text-center py-2 px-1 text-xs font-medium text-gray-500">+/-</th>
                   <th className="text-center py-2 px-1 text-xs font-medium text-gray-500">Games</th>
                 </tr>
               </thead>
@@ -881,8 +1363,8 @@ const TennisChampionship = () => {
                     <td className="py-2 px-1 text-center text-gray-600 text-xs">
                       {player.setsWon}:{player.setsLost}
                     </td>
-                    <td className="py-2 px-1 text-center text-blue-600 text-xs font-medium">
-                      {player.setPercentage.toFixed(0)}%
+                    <td className="py-2 px-1 text-center text-gray-600 text-xs font-medium">
+                      {player.setDifference > 0 ? '+' : ''}{player.setDifference}
                     </td>
                     <td className="py-2 px-1 text-center text-gray-600 text-xs">
                       {player.gamesWon}:{player.gamesLost}
@@ -895,8 +1377,7 @@ const TennisChampionship = () => {
           {playedMatches > 0 && (
             <div className="text-xs text-gray-500 mt-2 space-y-1">
               <p>🥇 1. Platz • 🥈 2. Platz • 🥉 3. Platz • 8 beste Spieler qualifiziert</p>
-              <p>📊 Ranking: Siege → Head-to-Head → Set% → Game%</p>
-              <p>🎾 ITF/USTA Standard: Nur Match-Siege zählen (keine Punkte)</p>
+              <p>📊 Ranking: Siege → Satzdifferenz → Satz% → Game%</p>
             </div>
           )}
         </div>
@@ -973,37 +1454,6 @@ const TennisChampionship = () => {
     );
   };
 
-  const KOBracket = ({ phase, title }) => {
-    if (phase === 'semifinal' && getQualifiedPlayers.length < 8) {
-      return (
-        <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-6 hover:shadow-2xl hover:border-blue-200 transition-all duration-300">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-            <Trophy className="mr-2 text-blue-500" size={20} />
-            {title}
-          </h3>
-          <div className="text-center py-12 text-gray-500">
-            <Trophy className="mx-auto mb-4 opacity-30" size={48} />
-            <p>Gruppenphase noch nicht abgeschlossen</p>
-            <p className="text-sm mt-2">Noch {8 - getQualifiedPlayers.length} Plätze offen</p>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-6 hover:shadow-2xl hover:border-blue-200 transition-all duration-300">
-        <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-          <Trophy className="mr-2 text-blue-500" size={20} />
-          {title}
-        </h3>
-        <div className="text-center py-12 text-gray-500">
-          <Trophy className="mx-auto mb-4 opacity-30" size={48} />
-          <p>K.O.-Phase wird freigeschaltet, wenn alle Gruppensieger feststehen</p>
-        </div>
-      </div>
-    );
-  };
-
   const AdminMatchList = () => {
     const allMatches = [...matches].sort((a, b) => {
       const phaseOrder = { 'group': 1, 'semifinal': 2, 'final': 3 };
@@ -1012,7 +1462,7 @@ const TennisChampionship = () => {
 
     const getPhaseTitle = (match) => {
       if (match.phase === 'group') return `Gruppe ${match.group}`;
-      if (match.phase === 'semifinal') return 'Endrunde';
+      if (match.phase === 'semifinal') return `K.O. Gruppe ${match.koGroup}`;
       if (match.phase === 'final') return 'Finale';
       return 'Unbekannt';
     };
@@ -1143,8 +1593,9 @@ const TennisChampionship = () => {
             <div className="space-y-12 pt-8 md:pt-12 border-t-2 border-gray-200">
               <h2 className="text-xl md:text-2xl font-light text-gray-800 text-center">K.O.-Phase</h2>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-12 lg:gap-16">
-                <KOBracket phase="semifinal" title="Endrunde" />
+              <KOBracket phase="semifinal" title="K.O.-Gruppen" />
+              
+              <div className="mt-12">
                 <KOBracket phase="final" title="Finale" />
               </div>
             </div>
@@ -1181,7 +1632,7 @@ const TennisChampionship = () => {
                           <div key={index} className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
                             <div className="font-medium text-gray-800">{player.name}</div>
                             <div className="text-xs text-gray-600">
-                              Gruppe {player.group} • 1. Platz ({player.wins} Siege, {player.setPercentage.toFixed(0)}% Sätze)
+                              Gruppe {player.group} • 1. Platz ({player.wins} Siege, {player.setDifference > 0 ? '+' : ''}{player.setDifference} Sätze)
                             </div>
                           </div>
                         ))}
@@ -1194,7 +1645,7 @@ const TennisChampionship = () => {
                           <div key={index} className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
                             <div className="font-medium text-gray-800">{player.name}</div>
                             <div className="text-xs text-gray-600">
-                              Gruppe {player.group} • 2. Platz ({player.wins} Siege, {player.setPercentage.toFixed(0)}% Sätze)
+                              Gruppe {player.group} • 2. Platz ({player.wins} Siege, {player.setDifference > 0 ? '+' : ''}{player.setDifference} Sätze)
                             </div>
                           </div>
                         ))}
@@ -1207,7 +1658,7 @@ const TennisChampionship = () => {
                           <div key={index} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
                             <div className="font-medium text-gray-800">{player.name}</div>
                             <div className="text-xs text-gray-600">
-                              Gruppe {player.group} • 3. Platz ({player.wins} Siege, {player.setPercentage.toFixed(0)}% Sätze)
+                              Gruppe {player.group} • 3. Platz ({player.wins} Siege, {player.setDifference > 0 ? '+' : ''}{player.setDifference} Sätze)
                             </div>
                           </div>
                         ))}
@@ -1242,10 +1693,10 @@ const TennisChampionship = () => {
               <div className="bg-green-50 border border-green-200 rounded-2xl p-6">
                 <h3 className="text-xl font-semibold text-green-800 mb-4 flex items-center">
                   <span className="text-green-600 mr-2">✅</span>
-                  Korrigiertes Ranking-System (ITF/USTA Standard)
+                  Turnier-Ranking System
                 </h3>
                 <p className="text-green-700 mb-4">
-                  Diese App verwendet jetzt das korrekte Tennis-Ranking nach internationalen Standards:
+                  Diese App verwendet ein optimiertes Ranking-System für Gruppenturniere:
                 </p>
                 <div className="space-y-3">
                   <div className="flex items-start p-3 bg-white rounded-lg border border-green-100">
@@ -1254,21 +1705,20 @@ const TennisChampionship = () => {
                   </div>
                   <div className="flex items-start p-3 bg-white rounded-lg border border-green-100">
                     <span className="text-green-500 mr-3 mt-0.5 text-lg">2️⃣</span>
-                    <span className="text-gray-700"><strong>Head-to-Head:</strong> Direkter Vergleich bei Gleichstand</span>
+                    <span className="text-gray-700"><strong>Satzdifferenz:</strong> Gewonnene minus verlorene Sätze</span>
                   </div>
                   <div className="flex items-start p-3 bg-white rounded-lg border border-green-100">
                     <span className="text-green-500 mr-3 mt-0.5 text-lg">3️⃣</span>
-                    <span className="text-gray-700"><strong>Set-Prozentsatz:</strong> % gewonnener Sätze von allen gespielten</span>
+                    <span className="text-gray-700"><strong>Satz-Prozentsatz:</strong> % gewonnener Sätze von allen gespielten</span>
                   </div>
                   <div className="flex items-start p-3 bg-white rounded-lg border border-green-100">
                     <span className="text-green-500 mr-3 mt-0.5 text-lg">4️⃣</span>
-                    <span className="text-gray-700"><strong>Game-Prozentsatz:</strong> % gewonnener Games von allen gespielten</span>
+                    <span className="text-gray-700"><strong>Game-Differenz:</strong> Gewonnene minus verlorene Games</span>
                   </div>
                 </div>
                 <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-yellow-800 text-sm">
-                    <strong>Wichtig:</strong> Es gibt KEINE "Teilnahme-Punkte" im Tennis! 
-                    Nur Match-Siege zählen für das Ranking.
+                    <strong>Hinweis:</strong> Die Satzdifferenz ist bei Tennis-Gruppenturnieren das übliche zweite Kriterium nach den Siegen.
                   </p>
                 </div>
               </div>
@@ -1312,52 +1762,6 @@ const TennisChampionship = () => {
                   <div className="space-y-4">
                     <div className="bg-green-50 rounded-lg p-4">
                       <h4 className="font-semibold text-green-800 mb-2">2.1 Gruppenphase</h4>
-                      <p className="text-green-700 text-sm mb-2"><strong>Zeitraum:</strong> Bis zum 30. Juni 2025</p>
-                      <p className="text-green-700 text-sm mb-2"><strong>Spielmodus:</strong></p>
-                      <ul className="text-green-700 text-sm space-y-1 list-none">
-                        <li>• Jeder gegen jeden innerhalb der Gruppe</li>
-                        <li>• 6 Matches pro Gruppe (bei 4 Spielern)</li>
-                        <li>• Gesamt 18 Gruppenspiele</li>
-                      </ul>
-                    </div>
-                    
-                    <div className="bg-green-50 rounded-lg p-4">
-                      <h4 className="font-semibold text-green-800 mb-2">2.2 Endrunde (K.O.-Phase)</h4>
-                      <p className="text-green-700 text-sm mb-2"><strong>Zeitraum:</strong> 1. - 31. Juli 2025</p>
-                      <p className="text-green-700 text-sm mb-2"><strong>Qualifikation:</strong> 8 Spieler qualifizieren sich:</p>
-                      <ul className="text-green-700 text-sm space-y-1 list-none">
-                        <li>• 3 Gruppensieger (1. Platz jeder Gruppe)</li>
-                        <li>• 3 Gruppenzweite (2. Platz jeder Gruppe)</li>
-                        <li>• 2 beste Gruppendritten (beste 3. Plätze nach Punkten/Satzverhältnis)</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-xl font-semibold text-yellow-800 mb-4 flex items-center">
-                    <span className="text-yellow-600 mr-2">🎾</span>
-                    3. Spielregeln
-                  </h3>
-                  
-                  <div className="space-y-4">
-                    <div className="bg-yellow-50 rounded-lg p-4">
-                      <h4 className="font-semibold text-yellow-800 mb-2">3.1 Spielformat</h4>
-                      <ul className="text-yellow-700 text-sm space-y-1 list-none">
-                        <li>• Best-of-3-Sätze (erster Spieler mit 2 Sätzen gewinnt)</li>
-                        <li>• Normale Tennis-Regeln nach ITF/DTB-Bestimmungen</li>
-                        <li>• Keine Vorteile (Deuce-Regel wie üblich)</li>
-                      </ul>
-                    </div>
-                    
-                    <div className="bg-yellow-50 rounded-lg p-4">
-                      <h4 className="font-semibold text-yellow-800 mb-2">3.2 Satzregeln</h4>
-                      <p className="text-yellow-700 text-sm mb-2"><strong>Reguläre Sätze:</strong></p>
-                      <ul className="text-yellow-700 text-sm space-y-1 mb-3 list-none">
-                        <li>• Satz gewonnen bei 6 Games mit mindestens 2 Games Vorsprung</li>
-                        <li>• Bei 6:6 → Tiebreak bis 7 Punkte (mindestens 2 Punkte Vorsprung)</li>
-                        <li>• Maximum: 7:6 nach Tiebreak</li>
-                      </ul>
                       <p className="text-yellow-700 text-sm mb-2"><strong>Match-Tiebreak:</strong></p>
                       <ul className="text-yellow-700 text-sm space-y-1 list-none">
                         <li>• Bei 1:1 Sätzen → Match-Tiebreak bis 10 Punkte</li>
@@ -1386,12 +1790,12 @@ const TennisChampionship = () => {
                     
                     <div className="bg-purple-50 rounded-lg p-4">
                       <h4 className="font-semibold text-purple-800 mb-2">4.2 Tabellenplatz-Ermittlung</h4>
-                      <p className="text-purple-700 text-sm mb-2">Reihenfolge bei Punktgleichheit:</p>
+                      <p className="text-purple-700 text-sm mb-2">Reihenfolge bei gleicher Anzahl von Siegen:</p>
                       <ol className="text-purple-700 text-sm space-y-1 list-none">
-                        <li>1. Direkter Vergleich (Kopf-an-Kopf)</li>
-                        <li>2. Satzverhältnis (gewonnene:verlorene Sätze)</li>
-                        <li>3. Spielverhältnis (gewonnene:verlorene Spiele)</li>
-                        <li>4. Los-Entscheidung</li>
+                        <li>1. Satzdifferenz (gewonnene minus verlorene Sätze)</li>
+                        <li>2. Satz-Prozentsatz (% gewonnener Sätze)</li>
+                        <li>3. Game-Differenz (gewonnene minus verlorene Games)</li>
+                        <li>4. Game-Prozentsatz (% gewonnener Games)</li>
                       </ol>
                     </div>
                   </div>
@@ -1646,36 +2050,80 @@ const TennisChampionship = () => {
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Gruppe</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Phase</label>
                         <select
-                          value={newMatch.group}
-                          onChange={(e) => setNewMatch({...newMatch, group: e.target.value, player1: '', player2: ''})}
+                          value={newMatch.phase}
+                          onChange={(e) => {
+                            const phase = e.target.value;
+                            setNewMatch({
+                              ...newMatch, 
+                              phase,
+                              group: phase === 'group' ? 'A' : newMatch.group,
+                              koGroup: phase === 'semifinal' ? 'A' : newMatch.koGroup,
+                              player1: '',
+                              player2: ''
+                            });
+                          }}
                           className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
                         >
-                          <option value="A">Gruppe A</option>
-                          <option value="B">Gruppe B</option>
-                          <option value="C">Gruppe C</option>
+                          <option value="group">Gruppenphase</option>
+                          {getQualifiedPlayers.length >= 8 && (
+                            <option value="semifinal">K.O.-Gruppen</option>
+                          )}
                         </select>
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Spielpaarung</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {newMatch.phase === 'group' ? 'Gruppe' : 'K.O. Gruppe'}
+                        </label>
                         <select
-                          value={`${newMatch.player1}-${newMatch.player2}`}
+                          value={newMatch.phase === 'group' ? newMatch.group : newMatch.koGroup}
                           onChange={(e) => {
-                            const [p1, p2] = e.target.value.split('-');
-                            setNewMatch({...newMatch, player1: p1, player2: p2});
+                            if (newMatch.phase === 'group') {
+                              setNewMatch({...newMatch, group: e.target.value, player1: '', player2: ''});
+                            } else {
+                              setNewMatch({...newMatch, koGroup: e.target.value, player1: '', player2: ''});
+                            }
                           }}
                           className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
                         >
-                          <option value="-">Wählen Sie ein Match...</option>
-                          {getAvailableMatches(newMatch.group).map(([p1, p2, played], index) => (
-                            <option key={index} value={`${p1}-${p2}`}>
-                              {p1} vs {p2} {played && isAdminMode ? '⚠️ (bereits gespielt!)' : ''}
-                            </option>
-                          ))}
+                          {newMatch.phase === 'group' ? (
+                            <>
+                              <option value="A">Gruppe A</option>
+                              <option value="B">Gruppe B</option>
+                              <option value="C">Gruppe C</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="A">K.O. Gruppe A</option>
+                              <option value="B">K.O. Gruppe B</option>
+                            </>
+                          )}
                         </select>
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Spielpaarung</label>
+                      <select
+                        value={`${newMatch.player1}-${newMatch.player2}`}
+                        onChange={(e) => {
+                          const [p1, p2] = e.target.value.split('-');
+                          setNewMatch({...newMatch, player1: p1, player2: p2});
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="-">Wählen Sie ein Match...</option>
+                        {getAvailableMatches(
+                          newMatch.phase, 
+                          newMatch.phase === 'group' ? newMatch.group : newMatch.koGroup
+                        ).map(([p1, p2, played], index) => (
+                          <option key={index} value={`${p1}-${p2}`}>
+                            {p1} vs {p2} {played && isAdminMode ? '⚠️ (bereits gespielt!)' : ''}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     <div className="space-y-4">
@@ -1792,13 +2240,13 @@ const TennisChampionship = () => {
                       )}
                     </button>
 
-                    <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <h4 className="text-green-800 font-medium mb-2">🎾 ITF/USTA Tennis-Ranking:</h4>
-                      <ul className="text-green-700 text-sm space-y-1 list-none">
+                    <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <h4 className="text-blue-800 font-medium mb-2">📊 Turnier-Ranking System:</h4>
+                      <ul className="text-blue-700 text-sm space-y-1 list-none">
                         <li>• <strong>1. Match-Siege:</strong> Anzahl gewonnener Matches</li>
-                        <li>• <strong>2. Head-to-Head:</strong> Direkter Vergleich</li>
-                        <li>• <strong>3. Set-Prozentsatz:</strong> % gewonnener Sätze</li>
-                        <li>• <strong>4. Game-Prozentsatz:</strong> % gewonnener Games</li>
+                        <li>• <strong>2. Satzdifferenz:</strong> Gewonnene minus verlorene Sätze</li>
+                        <li>• <strong>3. Satz-Prozentsatz:</strong> % gewonnener Sätze</li>
+                        <li>• <strong>4. Game-Differenz:</strong> Gewonnene minus verlorene Games</li>
                       </ul>
                     </div>
                   </div>
@@ -1869,4 +2317,60 @@ const TennisChampionship = () => {
   );
 };
 
-export default TennisChampionship;
+export default TennisChampionship;="text-green-700 text-sm mb-2"><strong>Zeitraum:</strong> Bis zum 30. Juni 2025</p>
+                      <p className="text-green-700 text-sm mb-2"><strong>Spielmodus:</strong></p>
+                      <ul className="text-green-700 text-sm space-y-1 list-none">
+                        <li>• Jeder gegen jeden innerhalb der Gruppe</li>
+                        <li>• 6 Matches pro Gruppe (bei 4 Spielern)</li>
+                        <li>• Gesamt 18 Gruppenspiele</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-green-800 mb-2">2.2 K.O.-Phase (2 Gruppen)</h4>
+                      <p className="text-green-700 text-sm mb-2"><strong>Zeitraum:</strong> 1. - 31. Juli 2025</p>
+                      <p className="text-green-700 text-sm mb-2"><strong>Qualifikation:</strong> 8 Spieler qualifizieren sich:</p>
+                      <ul className="text-green-700 text-sm space-y-1 list-none mb-3">
+                        <li>• 3 Gruppensieger (1. Platz jeder Gruppe)</li>
+                        <li>• 3 Gruppenzweite (2. Platz jeder Gruppe)</li>
+                        <li>• 2 beste Gruppendritten (beste 3. Plätze nach Satzdifferenz)</li>
+                      </ul>
+                      <p className="text-green-700 text-sm mb-2"><strong>K.O.-Gruppen-Einteilung:</strong></p>
+                      <ul className="text-green-700 text-sm space-y-1 list-none mb-3">
+                        <li>• <strong>K.O. Gruppe A:</strong> 1. bester Erster, 3. bester Erster, 2. bester Zweiter, 1. bester Dritter</li>
+                        <li>• <strong>K.O. Gruppe B:</strong> 2. bester Erster, 1. bester Zweiter, 3. bester Zweiter, 2. bester Dritter</li>
+                      </ul>
+                      <p className="text-green-700 text-sm mb-2"><strong>Finale:</strong></p>
+                      <ul className="text-green-700 text-sm space-y-1 list-none">
+                        <li>• Die Top 2 aus jeder K.O.-Gruppe qualifizieren sich fürs Finale</li>
+                        <li>• 4 Finalisten spielen um die Plätze 1-4</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold text-yellow-800 mb-4 flex items-center">
+                    <span className="text-yellow-600 mr-2">🎾</span>
+                    3. Spielregeln
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-yellow-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-yellow-800 mb-2">3.1 Spielformat</h4>
+                      <ul className="text-yellow-700 text-sm space-y-1 list-none">
+                        <li>• Best-of-3-Sätze (erster Spieler mit 2 Sätzen gewinnt)</li>
+                        <li>• Normale Tennis-Regeln nach ITF/DTB-Bestimmungen</li>
+                        <li>• Keine Vorteile (Deuce-Regel wie üblich)</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-yellow-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-yellow-800 mb-2">3.2 Satzregeln</h4>
+                      <p className="text-yellow-700 text-sm mb-2"><strong>Reguläre Sätze:</strong></p>
+                      <ul className="text-yellow-700 text-sm space-y-1 mb-3 list-none">
+                        <li>• Satz gewonnen bei 6 Games mit mindestens 2 Games Vorsprung</li>
+                        <li>• Bei 6:6 → Tiebreak bis 7 Punkte (mindestens 2 Punkte Vorsprung)</li>
+                        <li>• Maximum: 7:6 nach Tiebreak</li>
+                      </ul>
+                      <p className
