@@ -545,8 +545,9 @@ const TennisChampionship = () => {
           group: groupName,
           position: 3,
           wins: table[2].wins,
-          setDifference: table[2].setDifference,
           setPercentage: table[2].setPercentage,
+          gamePercentage: table[2].gamePercentage
+          setDifference: table[2].setDifference,
           setsWon: table[2].setsWon,
           setsLost: table[2].setsLost
         });
@@ -566,11 +567,15 @@ const TennisChampionship = () => {
       return b.setPercentage - a.setPercentage;
     });
     
-    groupThirds.sort((a, b) => {
-      if (b.wins !== a.wins) return b.wins - a.wins;
-      if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference;
-      return b.setPercentage - a.setPercentage;
-    });
+groupThirds.sort((a, b) => {
+  if (b.wins !== a.wins) return b.wins - a.wins;
+  if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference;
+  if (Math.abs(b.setPercentage - a.setPercentage) > 0.1) {
+    return b.setPercentage - a.setPercentage;
+  }
+  return b.gamePercentage - a.gamePercentage;
+});
+
 
     qualified.push(...groupFirsts);
     qualified.push(...groupSeconds);
@@ -1646,7 +1651,11 @@ const TennisChampionship = () => {
                           <div key={index} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
                             <div className="font-medium text-gray-800">{player.name}</div>
                             <div className="text-xs text-gray-600">
+
+                              Gruppe {player.group} • 3. Platz ({player.wins} Siege, {player.setPercentage.toFixed(0)}% Sätze, {player.gamePercentage.toFixed(0)}% Games)
+
                               Gruppe {player.group} • 3. Platz ({player.wins} Siege, {player.setDifference > 0 ? '+' : ''}{player.setDifference} Sätze)
+
                             </div>
                           </div>
                         ))}
