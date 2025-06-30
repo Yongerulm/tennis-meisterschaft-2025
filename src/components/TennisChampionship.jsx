@@ -546,7 +546,7 @@ const TennisChampionship = () => {
           position: 3,
           wins: table[2].wins,
           setPercentage: table[2].setPercentage,
-          gamePercentage: table[2].gamePercentage
+          gamePercentage: table[2].gamePercentage,
           setDifference: table[2].setDifference,
           setsWon: table[2].setsWon,
           setsLost: table[2].setsLost
