@@ -472,7 +472,8 @@ const TennisChampionship = () => {
           group: groupName,
           position: 3,
           wins: table[2].wins,
-          setPercentage: table[2].setPercentage
+          setPercentage: table[2].setPercentage,
+          gamePercentage: table[2].gamePercentage
         });
       }
     });
@@ -487,7 +488,10 @@ const TennisChampionship = () => {
     });
     groupThirds.sort((a, b) => {
       if (b.wins !== a.wins) return b.wins - a.wins;
-      return b.setPercentage - a.setPercentage;
+      if (Math.abs(b.setPercentage - a.setPercentage) > 0.1) {
+        return b.setPercentage - a.setPercentage;
+      }
+      return b.gamePercentage - a.gamePercentage;
     });
 
     qualified.push(...groupFirsts);
