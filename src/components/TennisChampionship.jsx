@@ -1598,6 +1598,7 @@ groupThirds.sort((a, b) => {
                 {Object.entries(GROUPS).map(([groupName, players]) => (
                   <GroupCard key={groupName} groupName={groupName} players={players} />
                 ))}
+                </div>
               </div>
             </div>
           </div>
