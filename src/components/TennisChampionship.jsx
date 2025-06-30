@@ -2269,7 +2269,6 @@ groupThirds.sort((a, b) => {
 return (
   <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
     <div className="container mx-auto px-4 py-6 md:py-8">
-      <nav className="flex flex-wrap justify-center gap-2 mb-8 md:mb-12">
           <TabButton
             id="overview"
             label="Überblick"
@@ -2316,11 +2315,9 @@ return (
 
         <main>{renderContent()}</main>
         
-              <SuccessModal />
-    </div> 
-    {/* ← schließt .container */}
-</div> 
-    {/* schließt min-h-screen */}
+      <SuccessModal />
+    </div>
+  </div>
 );
 };
 
