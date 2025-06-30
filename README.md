@@ -31,6 +31,7 @@ npm install
 cp .env.example .env
 # .env mit deinen Airtable Daten befuellen
 
+
 ### Airtable einrichten
 In der `.env` Datei muessen drei Variablen gesetzt sein, damit die App auf
 deine Airtable Basis zugreifen kann:
