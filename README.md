@@ -6,7 +6,7 @@ Eine moderne Web-Anwendung zur Verwaltung der Tennis-Vereinsmeisterschaft des TV
 
 - **Gruppenphase**: 3 Gruppen mit je 4 Spielern
 - **Automatische Tabellen**: Punkte, Siege, Niederlagen, Sätze
-- **K.O.-Phase**: 8 qualifizierte Spieler (3 Gruppensieger + 3 Gruppenzweite + 2 beste Gruppendritten)
+- **Endrunde**: 8 qualifizierte Spieler (3 Gruppensieger + 3 Gruppenzweite + 2 beste Gruppendritten)
 - **Tennis-Score-Validierung**: Korrekte Überprüfung aller Tennis-Ergebnisse
 - **Admin-Modus**: Erweiterte Verwaltungsfunktionen
 - **Responsive Design**: Funktioniert auf allen Geräten
@@ -61,7 +61,7 @@ Die Anwendung ist dann unter `http://localhost:3000` verfügbar.
 - **Admin-PIN**: `9999` - Erweiterte Verwaltung
 
 ### Navigation
-- **Überblick**: Gesamtansicht aller Gruppen und K.O.-Phase
+- **Überblick**: Gesamtansicht aller Gruppen und Endrunde
 - **Gruppen**: Detaillierte Gruppentabellen
 - **Endrunde**: Qualifikation und Endrunden-Matches
 - **Finale**: Finale der besten 2 Spieler

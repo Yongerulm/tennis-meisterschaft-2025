@@ -52,7 +52,7 @@ const KOBracket = ({ phase, title, koGroups, qualifiedPlayers, matches }) => {
           </h3>
           <div className="text-center py-12 text-gray-500">
             <Trophy className="mx-auto mb-4 opacity-30" size={48} />
-            <p>K.O.-Gruppen noch nicht abgeschlossen</p>
+            <p>End-Gruppen noch nicht abgeschlossen</p>
           </div>
         </div>
       );
@@ -65,13 +65,13 @@ const KOBracket = ({ phase, title, koGroups, qualifiedPlayers, matches }) => {
           {title}
         </h3>
         <div className="text-center py-6">
-          <p className="text-gray-600 mb-4">Die Top 2 aus jeder K.O.-Gruppe spielen im Finale</p>
+          <p className="text-gray-600 mb-4">Die Top 2 aus jeder End-Gruppe spielen im Finale</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {finalists.slice(0, 4).map((player, index) => (
               <div key={index} className="bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-300 rounded-lg p-4">
                 <div className="font-semibold text-gray-800">{player.name}</div>
                 <div className="text-sm text-gray-600">
-                  K.O. Gruppe {index < 2 ? 'A' : 'B'} - Platz {(index % 2) + 1}
+                  End-Gruppe {index < 2 ? 'A' : 'B'} - Platz {(index % 2) + 1}
                 </div>
               </div>
             ))}
