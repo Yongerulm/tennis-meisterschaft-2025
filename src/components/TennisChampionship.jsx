@@ -1003,6 +1003,12 @@ const TennisChampionship = () => {
               <h2 className="mt-4 text-2xl md:text-3xl font-light text-gray-800">
                 💥 Game. Set. Knockout!
               </h2>
+              <h2 className="mt-10 text-2xl md:text-3xl font-light text-gray-800">
+                💥 Game. Set. Knockout!
+              </h2>
+              <p className="mt-4 text-gray-600">
+                Die Gruppenphase ist Geschichte – jetzt beginnt der wahre Wettkampf!
+              </p>
             </div>
             
 
