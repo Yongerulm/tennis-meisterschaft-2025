@@ -21,7 +21,7 @@ const KOGroupCard = ({ groupName, players, matches }) => {
       <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-4 flex items-center justify-between">
         <div className="flex items-center">
           <Trophy className="mr-2 text-blue-500" size={20} />
-          K.O. Gruppe {groupName}
+          End-Gruppe {groupName}
         </div>
         <span className="text-sm text-gray-500">
           {playedMatches}/{totalMatches} Matches

@@ -527,8 +527,8 @@ const TennisChampionship = () => {
       setMatches(currentMatches => [...currentMatches, savedMatch]);
       setNextMatchId(nextMatchId + 1);
       
-      const phaseText = match.phase === 'group' ? `Gruppe ${match.group}` : 
-                       match.phase === 'semifinal' ? `K.O. Gruppe ${match.koGroup}` : 'Finale';
+      const phaseText = match.phase === 'group' ? `Gruppe ${match.group}` :
+                       match.phase === 'semifinal' ? `End-Gruppe ${match.koGroup}` : 'Finale';
       
       const statusText = connectionStatus === 'connected' ? 
         '✅ In Airtable gespeichert!' : 
@@ -880,7 +880,7 @@ const TennisChampionship = () => {
 
     const getPhaseTitle = (match) => {
       if (match.phase === 'group') return `Gruppe ${match.group}`;
-      if (match.phase === 'semifinal') return `K.O. Gruppe ${match.koGroup}`;
+      if (match.phase === 'semifinal') return `End-Gruppe ${match.koGroup}`;
       if (match.phase === 'final') return 'Finale';
       return 'Unbekannt';
     };
@@ -1011,11 +1011,11 @@ const TennisChampionship = () => {
 
             <div className="space-y-12 mb-16 md:mb-20">
 
-              <h2 className="text-xl md:text-2xl font-light text-gray-800 text-center mb-8 md:mb-10">K.O.-Phase</h2>
+              <h2 className="text-xl md:text-2xl font-light text-gray-800 text-center mb-8 md:mb-10">Endrunde</h2>
 
               <KOBracket
                 phase="semifinal"
-                title="K.O.-Gruppen"
+                title="End-Gruppen"
                 koGroups={getKOGroups}
                 qualifiedPlayers={getQualifiedPlayers}
                 matches={matches}
@@ -1294,7 +1294,7 @@ const TennisChampionship = () => {
                           <tr>
                             <td className="py-2 text-red-700">Endrunde</td>
                             <td className="py-2 text-red-700">1. - 31. Juli 2025</td>
-                            <td className="py-2 text-red-700">Alle K.O.-Spiele</td>
+                            <td className="py-2 text-red-700">Alle Endrunden-Spiele</td>
                           </tr>
                         </tbody>
                       </table>
@@ -1531,14 +1531,14 @@ const TennisChampionship = () => {
                         >
                           <option value="group">Gruppenphase</option>
                           {getQualifiedPlayers.length >= 8 && (
-                            <option value="semifinal">K.O.-Gruppen</option>
+                            <option value="semifinal">Endrunde</option>
                           )}
                         </select>
                       </div>
                       
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          {newMatch.phase === 'group' ? 'Gruppe' : 'K.O. Gruppe'}
+                          {newMatch.phase === 'group' ? 'Gruppe' : 'End-Gruppe'}
                         </label>
                         <select
                           value={newMatch.phase === 'group' ? newMatch.group : newMatch.koGroup}
@@ -1559,8 +1559,8 @@ const TennisChampionship = () => {
                             </>
                           ) : (
                             <>
-                              <option value="A">K.O. Gruppe A</option>
-                              <option value="B">K.O. Gruppe B</option>
+                              <option value="A">End-Gruppe A</option>
+                              <option value="B">End-Gruppe B</option>
                             </>
                           )}
                         </select>
