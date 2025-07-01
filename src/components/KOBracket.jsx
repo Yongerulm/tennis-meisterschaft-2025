@@ -23,7 +23,7 @@ const KOBracket = ({ phase, title, koGroups, qualifiedPlayers, matches }) => {
 
     return (
       <div className="space-y-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16">
           <KOGroupCard groupName="A" players={koGroups.A} matches={matches} />
           <KOGroupCard groupName="B" players={koGroups.B} matches={matches} />
         </div>

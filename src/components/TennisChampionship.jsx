@@ -993,10 +993,16 @@ const TennisChampionship = () => {
                 </div>
               </div>
               <p className="mt-6 text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed px-4">
-                Willkommen zur diesjährigen Vereinsmeisterschaft! 12 Spieler treten in 3 Gruppen gegeneinander an. 
+                Willkommen zur diesjährigen Vereinsmeisterschaft! 12 Spieler treten in 3 Gruppen gegeneinander an.
                 Die Endrunde spielen 8 Spieler. Jeweils die 2 Besten aus den 3 Gruppen plus die 2 besten 3ten aus allen Gruppen.
                 Gespielt wird im Best-of-3-Format mit Match-Tiebreak bei 1:1 Sätzen.
               </p>
+              <p className="mt-10 text-gray-600">
+                Die Gruppenphase ist Geschichte – jetzt beginnt der wahre Wettkampf!
+              </p>
+              <h2 className="mt-4 text-2xl md:text-3xl font-light text-gray-800">
+                💥 Game. Set. Knockout!
+              </h2>
             </div>
             
 
