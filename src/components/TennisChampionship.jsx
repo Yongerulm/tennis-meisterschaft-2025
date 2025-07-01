@@ -1,5 +1,31 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Users, Trophy, Plus, Calendar, MapPin, User, AlertTriangle, Settings, Trash2, RefreshCw, Wifi, WifiOff, FileText } from 'lucide-react';
+import {
+  Users,
+  Trophy,
+  Plus,
+  Calendar,
+  MapPin,
+  User,
+  AlertTriangle,
+  Settings,
+  Trash2,
+  RefreshCw,
+  Wifi,
+  WifiOff,
+  FileText,
+} from 'lucide-react';
+import KOBracket from './KOBracket';
+import {
+  validateTennisScore as validateTennisScoreUtil,
+  determineWinner as determineWinnerUtil,
+} from '../utils/matchValidation';
+import {
+  calculateGroupTable as calculateGroupTableUtil,
+  getQualifiedPlayers as getQualifiedPlayersUtil,
+  getKOGroups as getKOGroupsUtil,
+  generatePairings as generatePairingsUtil,
+  calculateKOGroupTable as calculateKOGroupTableUtil,
+} from '../utils/tournamentUtils';
 
 const TennisChampionship = () => {
   // State Management
@@ -318,643 +344,42 @@ const TennisChampionship = () => {
     }
   }, [connectionStatus]);
 
-  // Tennis Score Validation
-  const validateTennisScore = useCallback((set1P1, set1P2, set2P1, set2P2, tbP1, tbP2) => {
-    const errors = [];
-    
-    const validateSet = (p1Score, p2Score, setNumber) => {
-      const s1 = parseInt(p1Score) || 0;
-      const s2 = parseInt(p2Score) || 0;
-      
-      if (s1 < 0 || s2 < 0) {
-        errors.push(`Satz ${setNumber}: Negative Werte sind nicht erlaubt`);
-        return false;
-      }
-      
-      if (s1 === 0 && s2 === 0) return true;
-      
-      if (s1 > 7 || s2 > 7) {
-        errors.push(`Satz ${setNumber}: Maximal 7 Games pro Satz möglich`);
-        return false;
-      }
-      
-      if ((s1 === 6 && s2 <= 4) || (s2 === 6 && s1 <= 4)) return true;
-      if ((s1 === 7 && s2 === 5) || (s2 === 7 && s1 === 5)) return true;
-      if ((s1 === 7 && s2 === 6) || (s2 === 7 && s1 === 6)) return true;
-      
-      if (s1 === 6 && s2 === 6) {
-        errors.push(`Satz ${setNumber}: Bei 6:6 muss ein Tiebreak gespielt werden (Ergebnis wäre dann 7:6)`);
-        return false;
-      }
-      
-      return true;
-    };
-    
-    validateSet(set1P1, set1P2, 1);
-    validateSet(set2P1, set2P2, 2);
-    
-    const tb1 = parseInt(tbP1) || 0;
-    const tb2 = parseInt(tbP2) || 0;
-    
-    if (tb1 > 0 || tb2 > 0) {
-      if (tb1 < 0 || tb2 < 0) {
-        errors.push('Match-Tiebreak: Negative Werte sind nicht erlaubt');
-      } else if (Math.max(tb1, tb2) < 10) {
-        errors.push('Match-Tiebreak: Match-Tiebreak geht normalerweise bis mindestens 10 Punkte');
-      } else if (Math.max(tb1, tb2) >= 10 && Math.abs(tb1 - tb2) < 2) {
-        errors.push('Match-Tiebreak: Bei 10+ Punkten muss mindestens 2 Punkte Vorsprung bestehen');
-      }
-    }
-    
-    return errors;
-  }, []);
+  const validateTennisScore = useCallback(
+    (s1p1, s1p2, s2p1, s2p2, tb1, tb2) =>
+      validateTennisScoreUtil(s1p1, s1p2, s2p1, s2p2, tb1, tb2),
+    []
+  );
 
-  // Determine Winner
-  const determineWinner = useCallback((matchData) => {
-    const set1P1 = parseInt(matchData.set1Player1) || 0;
-    const set1P2 = parseInt(matchData.set1Player2) || 0;
-    const set2P1 = parseInt(matchData.set2Player1) || 0;
-    const set2P2 = parseInt(matchData.set2Player2) || 0;
-    const tbP1 = parseInt(matchData.tiebreakPlayer1) || 0;
-    const tbP2 = parseInt(matchData.tiebreakPlayer2) || 0;
+  const determineWinner = useCallback(
+    (matchData) => determineWinnerUtil(matchData),
+    []
+  );
 
-    const validationErrors = validateTennisScore(set1P1, set1P2, set2P1, set2P2, tbP1, tbP2);
-    
-    if (validationErrors.length > 0) {
-      return { winner: null, errors: validationErrors };
-    }
+  const calculateGroupTable = useCallback(
+    (groupName) => calculateGroupTableUtil(groupName, matches, GROUPS),
+    [matches]
+  );
 
-    if (set1P1 === 0 && set1P2 === 0 && set2P1 === 0 && set2P2 === 0) {
-      return { winner: null, errors: ['Bitte geben Sie mindestens ein Satz-Ergebnis ein'] };
-    }
+  const getQualifiedPlayers = useMemo(
+    () => getQualifiedPlayersUtil(matches, GROUPS),
+    [matches]
+  );
 
-    let p1Sets = 0, p2Sets = 0;
-    
-    if (set1P1 > 0 || set1P2 > 0) {
-      if (set1P1 > set1P2) p1Sets++; else p2Sets++;
-    }
-    
-    if (set2P1 > 0 || set2P2 > 0) {
-      if (set2P1 > set2P2) p1Sets++; else p2Sets++;
-    }
+  const getKOGroups = useMemo(
+    () => getKOGroupsUtil(getQualifiedPlayers),
+    [getQualifiedPlayers]
+  );
 
-    if (p1Sets === 2) return { winner: matchData.player1, errors: [] };
-    if (p2Sets === 2) return { winner: matchData.player2, errors: [] };
+  const generatePairings = useCallback(
+    (players) => generatePairingsUtil(players),
+    []
+  );
 
-    if (p1Sets === 1 && p2Sets === 1) {
-      if (tbP1 === 0 && tbP2 === 0) {
-        return { winner: null, errors: ['Bei 1:1 Sätzen ist ein Match-Tiebreak erforderlich'] };
-      }
-      return { winner: tbP1 > tbP2 ? matchData.player1 : matchData.player2, errors: [] };
-    }
-
-    if (p1Sets === 1 && p2Sets === 0) return { winner: matchData.player1, errors: [] };
-    if (p2Sets === 1 && p1Sets === 0) return { winner: matchData.player2, errors: [] };
-    
-    return { winner: null, errors: ['Ungültiges Match-Ergebnis'] };
-  }, [validateTennisScore]);
-
-  // KORRIGIERTE Calculate Group Table nach ITF/USTA Standard
-  const calculateGroupTable = useCallback((groupName) => {
-    const groupPlayers = GROUPS[groupName];
-    const groupMatches = matches.filter(m => m.group === groupName && m.status === 'completed');
-    
-    const playerStats = {};
-    groupPlayers.forEach(player => {
-      playerStats[player] = {
-        name: player,
-        matches: 0,
-        wins: 0,
-        losses: 0,
-        setsWon: 0,
-        setsLost: 0,
-        gamesWon: 0,
-        gamesLost: 0,
-        setDifference: 0,
-        gameDifference: 0,
-        setPercentage: 0,
-        gamePercentage: 0
-      };
-    });
-
-    groupMatches.forEach(match => {
-      const p1 = match.player1;
-      const p2 = match.player2;
-      
-      if (playerStats[p1] && playerStats[p2]) {
-        playerStats[p1].matches++;
-        playerStats[p2].matches++;
-        
-        let p1Sets = 0, p2Sets = 0;
-        
-        if (match.set1.player1 > match.set1.player2) p1Sets++; else p2Sets++;
-        playerStats[p1].gamesWon += match.set1.player1;
-        playerStats[p1].gamesLost += match.set1.player2;
-        playerStats[p2].gamesWon += match.set1.player2;
-        playerStats[p2].gamesLost += match.set1.player1;
-        
-        if (match.set2.player1 > match.set2.player2) p1Sets++; else p2Sets++;
-        playerStats[p1].gamesWon += match.set2.player1;
-        playerStats[p1].gamesLost += match.set2.player2;
-        playerStats[p2].gamesWon += match.set2.player2;
-        playerStats[p2].gamesLost += match.set2.player1;
-        
-        if (match.tiebreak) {
-          if (match.tiebreak.player1 > match.tiebreak.player2) p1Sets++; else p2Sets++;
-        }
-        
-        playerStats[p1].setsWon += p1Sets;
-        playerStats[p1].setsLost += p2Sets;
-        playerStats[p2].setsWon += p2Sets;
-        playerStats[p2].setsLost += p1Sets;
-        
-        if (match.winner === p1) {
-          playerStats[p1].wins++;
-          playerStats[p2].losses++;
-        } else if (match.winner === p2) {
-          playerStats[p2].wins++;
-          playerStats[p1].losses++;
-        }
-      }
-    });
-
-    Object.values(playerStats).forEach(player => {
-      const totalSets = player.setsWon + player.setsLost;
-      const totalGames = player.gamesWon + player.gamesLost;
-      player.setDifference = player.setsWon - player.setsLost;
-      player.gameDifference = player.gamesWon - player.gamesLost;
-      player.setPercentage = totalSets > 0 ? (player.setsWon / totalSets * 100) : 0;
-      player.gamePercentage = totalGames > 0 ? (player.gamesWon / totalGames * 100) : 0;
-    });
-
-    return Object.values(playerStats).sort((a, b) => {
-      // Primär: Anzahl Siege
-      if (b.wins !== a.wins) return b.wins - a.wins;
-      
-      // Sekundär: Satzdifferenz (nicht Prozentsatz!)
-      if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference;
-      
-      // Tertiär: Satzprozentsatz
-      if (Math.abs(b.setPercentage - a.setPercentage) > 0.1) {
-        return b.setPercentage - a.setPercentage;
-      }
-      
-      // Quaternär: Gamedifferenz
-      if (b.gameDifference !== a.gameDifference) return b.gameDifference - a.gameDifference;
-      
-      // Final: Game-Prozentsatz
-      return b.gamePercentage - a.gamePercentage;
-    });
-  }, [matches]);
-
-  const getQualifiedPlayers = useMemo(() => {
-    const qualified = [];
-    const groupFirsts = [];
-    const groupSeconds = [];
-    const groupThirds = [];
-    
-    ['A', 'B', 'C'].forEach(groupName => {
-      const table = calculateGroupTable(groupName);
-      if (table.length >= 1) {
-        groupFirsts.push({
-          name: table[0].name,
-          group: groupName,
-          position: 1,
-          wins: table[0].wins,
-          setDifference: table[0].setDifference,
-          setPercentage: table[0].setPercentage,
-          setsWon: table[0].setsWon,
-          setsLost: table[0].setsLost
-        });
-      }
-      if (table.length >= 2) {
-        groupSeconds.push({
-          name: table[1].name,
-          group: groupName,
-          position: 2,
-          wins: table[1].wins,
-          setDifference: table[1].setDifference,
-          setPercentage: table[1].setPercentage,
-          setsWon: table[1].setsWon,
-          setsLost: table[1].setsLost
-        });
-      }
-      if (table.length >= 3) {
-        groupThirds.push({
-          name: table[2].name,
-          group: groupName,
-          position: 3,
-          wins: table[2].wins,
-          setPercentage: table[2].setPercentage,
-          gamePercentage: table[2].gamePercentage,
-          setDifference: table[2].setDifference,
-          setsWon: table[2].setsWon,
-          setsLost: table[2].setsLost
-        });
-      }
-    });
-
-    // Sortiere jede Positionsgruppe
-    groupFirsts.sort((a, b) => {
-      if (b.wins !== a.wins) return b.wins - a.wins;
-      if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference;
-      return b.setPercentage - a.setPercentage;
-    });
-    
-    groupSeconds.sort((a, b) => {
-      if (b.wins !== a.wins) return b.wins - a.wins;
-      if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference;
-      return b.setPercentage - a.setPercentage;
-    });
-    
-groupThirds.sort((a, b) => {
-  if (b.wins !== a.wins) return b.wins - a.wins;
-  if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference;
-  if (Math.abs(b.setPercentage - a.setPercentage) > 0.1) {
-    return b.setPercentage - a.setPercentage;
-  }
-  return b.gamePercentage - a.gamePercentage;
-});
-
-
-    qualified.push(...groupFirsts);
-    qualified.push(...groupSeconds);
-    qualified.push(...groupThirds.slice(0, 2));
-
-    return qualified;
-  }, [calculateGroupTable]);
-
-  // K.O. Gruppen-Verteilung
-  const getKOGroups = useMemo(() => {
-    if (getQualifiedPlayers.length < 8) {
-      return { A: [], B: [] };
-    }
-
-    // Sortiere qualifizierte Spieler nach Position und Ranking
-    const firsts = getQualifiedPlayers.filter(p => p.position === 1);
-    const seconds = getQualifiedPlayers.filter(p => p.position === 2);
-    const thirds = getQualifiedPlayers.filter(p => p.position === 3);
-
-    // Verteilung auf K.O.-Gruppen (Snake-Draft für Fairness)
-    const koGroupA = [];
-    const koGroupB = [];
-
-    // Verteile Gruppensieger: 1->A, 2->B, 3->A
-    if (firsts[0]) koGroupA.push(firsts[0]);
-    if (firsts[1]) koGroupB.push(firsts[1]);
-    if (firsts[2]) koGroupA.push(firsts[2]);
-
-    // Verteile Gruppenzweite: 1->B, 2->A, 3->B
-    if (seconds[0]) koGroupB.push(seconds[0]);
-    if (seconds[1]) koGroupA.push(seconds[1]);
-    if (seconds[2]) koGroupB.push(seconds[2]);
-
-    // Verteile beste Dritte: 1->A, 2->B
-    if (thirds[0]) koGroupA.push(thirds[0]);
-    if (thirds[1]) koGroupB.push(thirds[1]);
-
-    return { A: koGroupA, B: koGroupB };
-  }, [getQualifiedPlayers]);
-
-  const generatePairings = (players) => {
-    const pairings = [];
-    for (let i = 0; i < players.length; i++) {
-      for (let j = i + 1; j < players.length; j++) {
-        pairings.push([players[i], players[j]]);
-      }
-    }
-    return pairings;
-  };
-
-  // K.O. Gruppen-Tabelle berechnen
-  const calculateKOGroupTable = useCallback((groupName) => {
-    const groupPlayers = getKOGroups[groupName];
-    if (!groupPlayers || groupPlayers.length === 0) return [];
-    
-    const koMatches = matches.filter(m => 
-      m.phase === 'semifinal' && 
-      m.koGroup === groupName && 
-      m.status === 'completed'
-    );
-    
-    const playerStats = {};
-    groupPlayers.forEach(player => {
-      playerStats[player.name] = {
-        name: player.name,
-        originalGroup: player.group,
-        originalPosition: player.position,
-        matches: 0,
-        wins: 0,
-        losses: 0,
-        setsWon: 0,
-        setsLost: 0,
-        gamesWon: 0,
-        gamesLost: 0,
-        setDifference: 0,
-        gameDifference: 0,
-        setPercentage: 0,
-        gamePercentage: 0
-      };
-    });
-
-    koMatches.forEach(match => {
-      const p1 = match.player1;
-      const p2 = match.player2;
-      
-      if (playerStats[p1] && playerStats[p2]) {
-        playerStats[p1].matches++;
-        playerStats[p2].matches++;
-        
-        let p1Sets = 0, p2Sets = 0;
-        
-        if (match.set1.player1 > match.set1.player2) p1Sets++; else p2Sets++;
-        playerStats[p1].gamesWon += match.set1.player1;
-        playerStats[p1].gamesLost += match.set1.player2;
-        playerStats[p2].gamesWon += match.set1.player2;
-        playerStats[p2].gamesLost += match.set1.player1;
-        
-        if (match.set2.player1 > match.set2.player2) p1Sets++; else p2Sets++;
-        playerStats[p1].gamesWon += match.set2.player1;
-        playerStats[p1].gamesLost += match.set2.player2;
-        playerStats[p2].gamesWon += match.set2.player2;
-        playerStats[p2].gamesLost += match.set2.player1;
-        
-        if (match.tiebreak) {
-          if (match.tiebreak.player1 > match.tiebreak.player2) p1Sets++; else p2Sets++;
-        }
-        
-        playerStats[p1].setsWon += p1Sets;
-        playerStats[p1].setsLost += p2Sets;
-        playerStats[p2].setsWon += p2Sets;
-        playerStats[p2].setsLost += p1Sets;
-        
-        if (match.winner === p1) {
-          playerStats[p1].wins++;
-          playerStats[p2].losses++;
-        } else if (match.winner === p2) {
-          playerStats[p2].wins++;
-          playerStats[p1].losses++;
-        }
-      }
-    });
-
-    Object.values(playerStats).forEach(player => {
-      const totalSets = player.setsWon + player.setsLost;
-      const totalGames = player.gamesWon + player.gamesLost;
-      player.setDifference = player.setsWon - player.setsLost;
-      player.gameDifference = player.gamesWon - player.gamesLost;
-      player.setPercentage = totalSets > 0 ? (player.setsWon / totalSets * 100) : 0;
-      player.gamePercentage = totalGames > 0 ? (player.gamesWon / totalGames * 100) : 0;
-    });
-
-    return Object.values(playerStats).sort((a, b) => {
-      if (b.wins !== a.wins) return b.wins - a.wins;
-      if (b.setDifference !== a.setDifference) return b.setDifference - a.setDifference;
-      if (Math.abs(b.setPercentage - a.setPercentage) > 0.1) {
-        return b.setPercentage - a.setPercentage;
-      }
-      if (b.gameDifference !== a.gameDifference) return b.gameDifference - a.gameDifference;
-      return b.gamePercentage - a.gamePercentage;
-    });
-  }, [getKOGroups, matches]);
-
-  const KOGroupCard = ({ groupName, players }) => {
-    const tableData = useMemo(() => calculateKOGroupTable(groupName), [groupName]);
-    const totalMatches = generatePairings(players.map(p => p.name)).length;
-    const playedMatches = matches.filter(m => 
-      m.phase === 'semifinal' && 
-      m.koGroup === groupName && 
-      m.status === 'completed'
-    ).length;
-    
-    return (
-      <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-4 md:p-6 hover:shadow-2xl hover:border-blue-200 transition-all duration-300">
-        <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-4 flex items-center justify-between">
-          <div className="flex items-center">
-            <Trophy className="mr-2 text-blue-500" size={20} />
-            K.O. Gruppe {groupName}
-          </div>
-          <span className="text-sm text-gray-500">
-            {playedMatches}/{totalMatches} Matches
-          </span>
-        </h3>
-        
-        <div className="mb-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Tabelle</h4>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-1 text-xs font-medium text-gray-500">Platz</th>
-                  <th className="text-left py-2 px-2 text-xs font-medium text-gray-500">Spieler</th>
-                  <th className="text-center py-2 px-1 text-xs font-medium text-gray-500">Vorr.</th>
-                  <th className="text-center py-2 px-1 text-xs font-medium text-gray-500">S</th>
-                  <th className="text-center py-2 px-1 text-xs font-medium text-gray-500">N</th>
-                  <th className="text-center py-2 px-1 text-xs font-medium text-gray-500">Sätze</th>
-                  <th className="text-center py-2 px-1 text-xs font-medium text-gray-500">Games</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tableData.map((player, index) => (
-                  <tr key={player.name} className={`border-b border-gray-100 ${
-                    index === 0 ? 'bg-green-50' : index === 1 ? 'bg-blue-50' : ''
-                  }`}>
-                    <td className="py-2 px-1 text-center">
-                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
-                        index === 0 ? 'bg-yellow-500 text-white' : 
-                        index === 1 ? 'bg-gray-400 text-white' : 
-                        'bg-gray-200 text-gray-700'
-                      }`}>
-                        {index + 1}
-                      </span>
-                    </td>
-                    <td className="py-2 px-2">
-                      <div>
-                        <span className="font-medium text-gray-800">{player.name}</span>
-                        <span className="text-xs text-gray-500 ml-1">
-                          ({player.originalGroup}{player.originalPosition})
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-2 px-1 text-center text-xs text-gray-600">
-                      Gr.{player.originalGroup}
-                    </td>
-                    <td className="py-2 px-1 text-center font-bold text-green-600">{player.wins}</td>
-                    <td className="py-2 px-1 text-center text-red-600">{player.losses}</td>
-                    <td className="py-2 px-1 text-center text-gray-600 text-xs">
-                      {player.setsWon}:{player.setsLost}
-                    </td>
-                    <td className="py-2 px-1 text-center text-gray-600 text-xs">
-                      {player.gamesWon}:{player.gamesLost}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {playedMatches > 0 && (
-            <div className="text-xs text-gray-500 mt-2">
-              <p>🥇 Platz 1 & 2 qualifizieren sich fürs Finale</p>
-            </div>
-          )}
-        </div>
-
-        <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Matches</h4>
-          <div className="space-y-2">
-            {generatePairings(players.map(p => p.name)).map((pairing, index) => {
-              const match = matches.find(m => 
-                m.phase === 'semifinal' && 
-                m.koGroup === groupName &&
-                ((m.player1 === pairing[0] && m.player2 === pairing[1]) || 
-                 (m.player1 === pairing[1] && m.player2 === pairing[0]))
-              );
-              const isCompleted = match && match.status === 'completed';
-              
-              return (
-                <div key={index} className={`p-3 rounded-lg border transition-all duration-200 ${
-                  isCompleted ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-800 mb-1">
-                        {pairing[0]} vs {pairing[1]}
-                      </div>
-                      
-                      {isCompleted && match.set1 && (
-                        <div className="text-sm text-gray-600">
-                          <div className="flex flex-wrap items-center gap-2 md:gap-4">
-                            <span className="flex items-center space-x-1">
-                              <span className="text-xs text-gray-500">Satz 1:</span>
-                              <span className="font-mono font-medium">
-                                {match.set1.player1}:{match.set1.player2}
-                              </span>
-                            </span>
-                            <span className="flex items-center space-x-1">
-                              <span className="text-xs text-gray-500">Satz 2:</span>
-                              <span className="font-mono font-medium">
-                                {match.set2.player1}:{match.set2.player2}
-                              </span>
-                            </span>
-                            {match.tiebreak && (
-                              <span className="flex items-center space-x-1">
-                                <span className="text-xs text-gray-500">TB:</span>
-                                <span className="font-mono font-medium">
-                                  {match.tiebreak.player1}:{match.tiebreak.player2}
-                                </span>
-                              </span>
-                            )}
-                          </div>
-                          <div className="mt-1 flex items-center">
-                            <Trophy className="w-3 h-3 text-yellow-500 mr-1" />
-                            <span className="text-xs font-medium text-gray-700">
-                              Sieger: {match.winner}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ml-3 ${
-                      isCompleted 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {isCompleted ? 'Gespielt' : 'Ausstehend'}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const KOBracket = ({ phase, title }) => {
-    if (phase === 'semifinal') {
-      if (getQualifiedPlayers.length < 8) {
-        return (
-          <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-6 hover:shadow-2xl hover:border-blue-200 transition-all duration-300">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-              <Trophy className="mr-2 text-blue-500" size={20} />
-              {title}
-            </h3>
-            <div className="text-center py-12 text-gray-500">
-              <Trophy className="mx-auto mb-4 opacity-30" size={48} />
-              <p>Gruppenphase noch nicht abgeschlossen</p>
-              <p className="text-sm mt-2">Noch {8 - getQualifiedPlayers.length} Plätze offen</p>
-            </div>
-          </div>
-        );
-      }
-
-      // K.O.-Phase mit 2 Gruppen
-      return (
-        <div className="space-y-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <KOGroupCard groupName="A" players={getKOGroups.A} />
-            <KOGroupCard groupName="B" players={getKOGroups.B} />
-          </div>
-        </div>
-      );
-    }
-
-    // Finale
-    if (phase === 'final') {
-      const koGroupA = calculateKOGroupTable('A');
-      const koGroupB = calculateKOGroupTable('B');
-      const finalists = [];
-      
-      if (koGroupA.length >= 2) {
-        finalists.push(koGroupA[0], koGroupA[1]);
-      }
-      if (koGroupB.length >= 2) {
-        finalists.push(koGroupB[0], koGroupB[1]);
-      }
-
-      if (finalists.length < 4) {
-        return (
-          <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-6 hover:shadow-2xl hover:border-blue-200 transition-all duration-300">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-              <Trophy className="mr-2 text-blue-500" size={20} />
-              {title}
-            </h3>
-            <div className="text-center py-12 text-gray-500">
-              <Trophy className="mx-auto mb-4 opacity-30" size={48} />
-              <p>K.O.-Gruppen noch nicht abgeschlossen</p>
-            </div>
-          </div>
-        );
-      }
-
-      return (
-        <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-6 hover:shadow-2xl hover:border-blue-200 transition-all duration-300">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-            <Trophy className="mr-2 text-blue-500" size={20} />
-            {title}
-          </h3>
-          <div className="text-center py-6">
-            <p className="text-gray-600 mb-4">Die Top 2 aus jeder K.O.-Gruppe spielen im Finale</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {finalists.slice(0, 4).map((player, index) => (
-                <div key={index} className="bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-300 rounded-lg p-4">
-                  <div className="font-semibold text-gray-800">{player.name}</div>
-                  <div className="text-sm text-gray-600">
-                    K.O. Gruppe {index < 2 ? 'A' : 'B'} - Platz {(index % 2) + 1}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return null;
-  };
-
+  const calculateKOGroupTable = useCallback(
+    (groupName) =>
+      calculateKOGroupTableUtil(groupName, getKOGroups[groupName], matches),
+    [getKOGroups, matches]
+  );
   const getAvailableMatches = useCallback((phase, groupOrKoGroup) => {
     if (phase === 'group') {
       const groupPlayers = GROUPS[groupOrKoGroup];
@@ -1581,10 +1006,22 @@ groupThirds.sort((a, b) => {
 
               <h2 className="text-xl md:text-2xl font-light text-gray-800 text-center mb-8 md:mb-10">K.O.-Phase</h2>
 
-              <KOBracket phase="semifinal" title="K.O.-Gruppen" />
+              <KOBracket
+                phase="semifinal"
+                title="K.O.-Gruppen"
+                koGroups={getKOGroups}
+                qualifiedPlayers={getQualifiedPlayers}
+                matches={matches}
+              />
 
               <div className="mt-12">
-                <KOBracket phase="final" title="Finale" />
+                <KOBracket
+                  phase="final"
+                  title="Finale"
+                  koGroups={getKOGroups}
+                  qualifiedPlayers={getQualifiedPlayers}
+                  matches={matches}
+                />
               </div>
             </div>
 
@@ -1622,7 +1059,13 @@ groupThirds.sort((a, b) => {
           <div>
             <h2 className="text-2xl md:text-3xl font-light text-gray-800 mb-8 text-center">Endrunde</h2>
             <div className="max-w-4xl mx-auto">
-              <KOBracket phase="semifinal" title="Endrunde" />
+              <KOBracket
+                phase="semifinal"
+                title="Endrunde"
+                koGroups={getKOGroups}
+                qualifiedPlayers={getQualifiedPlayers}
+                matches={matches}
+              />
               
               {getQualifiedPlayers.length >= 8 && (
                 <div className="mt-8 bg-white rounded-2xl shadow-lg p-4 md:p-6">
@@ -1683,7 +1126,13 @@ groupThirds.sort((a, b) => {
           <div>
             <h2 className="text-2xl md:text-3xl font-light text-gray-800 mb-8 text-center">Finale</h2>
             <div className="max-w-lg mx-auto">
-              <KOBracket phase="final" title="Finale" />
+              <KOBracket
+                phase="final"
+                title="Finale"
+                koGroups={getKOGroups}
+                qualifiedPlayers={getQualifiedPlayers}
+                matches={matches}
+              />
             </div>
           </div>
         );
