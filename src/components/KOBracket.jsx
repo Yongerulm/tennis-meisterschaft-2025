@@ -1,7 +1,7 @@
 import React from 'react';
 import { Trophy } from 'lucide-react';
 import KOGroupCard from './KOGroupCard';
-import { calculateKOGroupTable } from '../utils/tournamentUtils';
+import { calculateKOGroupTable, generatePairings } from '../utils/tournamentUtils';
 
 const KOBracket = ({ phase, title, koGroups, qualifiedPlayers, matches }) => {
   if (phase === 'semifinal') {
@@ -43,7 +43,21 @@ const KOBracket = ({ phase, title, koGroups, qualifiedPlayers, matches }) => {
       finalists.push(koGroupB[0], koGroupB[1]);
     }
 
-    if (finalists.length < 4) {
+    // Check if all semifinal matches are completed
+    const totalMatchesA = generatePairings(koGroups.A.map((p) => p.name)).length;
+    const playedMatchesA = matches.filter(
+      (m) => m.phase === 'semifinal' && m.koGroup === 'A' && m.status === 'completed'
+    ).length;
+
+    const totalMatchesB = generatePairings(koGroups.B.map((p) => p.name)).length;
+    const playedMatchesB = matches.filter(
+      (m) => m.phase === 'semifinal' && m.koGroup === 'B' && m.status === 'completed'
+    ).length;
+
+    const allSemisCompleted =
+      playedMatchesA === totalMatchesA && playedMatchesB === totalMatchesB;
+
+    if (finalists.length < 4 || !allSemisCompleted) {
       return (
         <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-6 hover:shadow-2xl hover:border-blue-200 transition-all duration-300">
           <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
