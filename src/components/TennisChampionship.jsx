@@ -1057,18 +1057,7 @@ const TennisChampionship = () => {
             </div>
 
 
-            <div className="pt-12 md:pt-16 border-t-2 border-gray-200">
-
-            <div className="pt-8 md:pt-12 border-t-2 border-gray-200">
-
-              <h2 className="text-xl md:text-2xl font-light text-gray-800 mb-8 md:mb-10 text-center">Gruppenphase</h2>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 md:gap-12 lg:gap-16">
-                {Object.entries(GROUPS).map(([groupName, players]) => (
-                  <GroupCard key={groupName} groupName={groupName} players={players} />
-                ))}
-                </div>
-              </div>
-            </div>
+            {/* Gruppenphase wird in der Übersicht ausgeblendet */}
           </div>
         </div>
         );
