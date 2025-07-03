@@ -252,6 +252,22 @@ const TennisChampionship = () => {
           airtableId: record.id
         }));
 
+        // Fehlende KO-Gruppen anhand der qualifizierten Spieler ableiten
+        const qualified = getQualifiedPlayersUtil(airtableMatches, GROUPS);
+        const koGroups = getKOGroupsUtil(qualified);
+        const groupAPlayers = koGroups.A.map(p => p.name);
+        const groupBPlayers = koGroups.B.map(p => p.name);
+
+        airtableMatches.forEach(m => {
+          if (m.phase === 'semifinal' && !m.koGroup) {
+            if (groupAPlayers.includes(m.player1) && groupAPlayers.includes(m.player2)) {
+              m.koGroup = 'A';
+            } else if (groupBPlayers.includes(m.player1) && groupBPlayers.includes(m.player2)) {
+              m.koGroup = 'B';
+            }
+          }
+        });
+
         setMatches(airtableMatches);
         
         if (airtableMatches.length > 0) {
@@ -283,7 +299,6 @@ const TennisChampionship = () => {
         fields: {
           ID: matchData.id,
           Gruppe: matchData.group,
-          KOGruppe: matchData.koGroup,
           Phase: matchData.phase,
           Spieler1: matchData.player1,
           Spieler2: matchData.player2,
@@ -415,13 +430,20 @@ const TennisChampionship = () => {
           const player1 = playerNames[i];
           const player2 = playerNames[j];
           
-          const existingMatch = matches.find(m => 
-            m.phase === 'semifinal' &&
-            m.koGroup === groupOrKoGroup && 
-            m.status === 'completed' &&
-            ((m.player1 === player1 && m.player2 === player2) || 
-             (m.player1 === player2 && m.player2 === player1))
-          );
+          const existingMatch = matches.find(m => {
+            if (m.phase !== 'semifinal' || m.status !== 'completed') return false;
+            const playersMatch =
+              (m.player1 === player1 && m.player2 === player2) ||
+              (m.player1 === player2 && m.player2 === player1);
+            if (!playersMatch) return false;
+            if (m.koGroup) {
+              return m.koGroup === groupOrKoGroup;
+            }
+            return (
+              playerNames.includes(m.player1) &&
+              playerNames.includes(m.player2)
+            );
+          });
           
           if (!existingMatch || isAdminMode) {
             availableMatches.push([player1, player2, !!existingMatch]);
@@ -880,7 +902,9 @@ const TennisChampionship = () => {
 
     const getPhaseTitle = (match) => {
       if (match.phase === 'group') return `Gruppe ${match.group}`;
-      if (match.phase === 'semifinal') return `End-Gruppe ${match.koGroup}`;
+      if (match.phase === 'semifinal') {
+        return `End-Gruppe ${match.koGroup || '?'}`;
+      }
       if (match.phase === 'final') return 'Finale';
       return 'Unbekannt';
     };
