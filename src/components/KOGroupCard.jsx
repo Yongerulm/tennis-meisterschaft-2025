@@ -9,12 +9,17 @@ const KOGroupCard = ({ groupName, players, matches }) => {
   );
 
   const totalMatches = generatePairings(players.map((p) => p.name)).length;
-  const playedMatches = matches.filter(
-    (m) =>
-      m.phase === 'semifinal' &&
-      m.koGroup === groupName &&
-      m.status === 'completed'
-  ).length;
+  const playedMatches = useMemo(() => {
+    const keys = matches
+      .filter(
+        (m) =>
+          m.phase === 'semifinal' &&
+          m.koGroup === groupName &&
+          m.status === 'completed'
+      )
+      .map((m) => [m.player1, m.player2].sort().join('-'));
+    return new Set(keys).size;
+  }, [groupName, matches]);
 
   return (
     <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-4 md:p-6 hover:shadow-2xl hover:border-blue-200 transition-all duration-300">
