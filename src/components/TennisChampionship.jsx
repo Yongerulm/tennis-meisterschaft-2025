@@ -451,6 +451,41 @@ const TennisChampionship = () => {
         }
       }
       return availableMatches;
+    } else if (phase === 'final') {
+      const koGroupA = calculateKOGroupTable('A');
+      const koGroupB = calculateKOGroupTable('B');
+      if (koGroupA.length < 2 || koGroupB.length < 2) return [];
+
+      const totalMatchesA = generatePairings(getKOGroups.A.map(p => p.name)).length;
+      const playedMatchesA = matches.filter(
+        m => m.phase === 'semifinal' && m.koGroup === 'A' && m.status === 'completed'
+      ).length;
+      const totalMatchesB = generatePairings(getKOGroups.B.map(p => p.name)).length;
+      const playedMatchesB = matches.filter(
+        m => m.phase === 'semifinal' && m.koGroup === 'B' && m.status === 'completed'
+      ).length;
+
+      if (playedMatchesA !== totalMatchesA || playedMatchesB !== totalMatchesB) {
+        return [];
+      }
+
+      const finalPair = [koGroupA[0].name, koGroupB[0].name];
+      const thirdPair = [koGroupA[1].name, koGroupB[1].name];
+
+      const pairs = [finalPair, thirdPair];
+      const availableMatches = [];
+      pairs.forEach(([p1, p2]) => {
+        const existingMatch = matches.find(
+          m =>
+            m.phase === 'final' &&
+            ((m.player1 === p1 && m.player2 === p2) || (m.player1 === p2 && m.player2 === p1))
+        );
+
+        if (!existingMatch || isAdminMode) {
+          availableMatches.push([p1, p2, !!existingMatch]);
+        }
+      });
+      return availableMatches;
     }
     return [];
   }, [matches, isAdminMode, getKOGroups]);
@@ -1551,38 +1586,43 @@ const TennisChampionship = () => {
                           {getQualifiedPlayers.length >= 8 && (
                             <option value="semifinal">Endrunde</option>
                           )}
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          {newMatch.phase === 'group' ? 'Gruppe' : 'End-Gruppe'}
-                        </label>
-                        <select
-                          value={newMatch.phase === 'group' ? newMatch.group : newMatch.koGroup}
-                          onChange={(e) => {
-                            if (newMatch.phase === 'group') {
-                              setNewMatch({...newMatch, group: e.target.value, player1: '', player2: ''});
-                            } else {
-                              setNewMatch({...newMatch, koGroup: e.target.value, player1: '', player2: ''});
-                            }
-                          }}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
-                        >
-                          {newMatch.phase === 'group' ? (
-                            <>
-                              <option value="A">Gruppe A</option>
-                              <option value="B">Gruppe B</option>
-                              <option value="C">Gruppe C</option>
-                            </>
-                          ) : (
-                            <>
-                              <option value="A">End-Gruppe A</option>
-                              <option value="B">End-Gruppe B</option>
-                            </>
+                          {getAvailableMatches('final').length > 0 && (
+                            <option value="final">Finale</option>
                           )}
                         </select>
                       </div>
+                      
+                      {newMatch.phase !== 'final' && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {newMatch.phase === 'group' ? 'Gruppe' : 'End-Gruppe'}
+                          </label>
+                          <select
+                            value={newMatch.phase === 'group' ? newMatch.group : newMatch.koGroup}
+                            onChange={(e) => {
+                              if (newMatch.phase === 'group') {
+                                setNewMatch({...newMatch, group: e.target.value, player1: '', player2: ''});
+                              } else {
+                                setNewMatch({...newMatch, koGroup: e.target.value, player1: '', player2: ''});
+                              }
+                            }}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
+                          >
+                            {newMatch.phase === 'group' ? (
+                              <>
+                                <option value="A">Gruppe A</option>
+                                <option value="B">Gruppe B</option>
+                                <option value="C">Gruppe C</option>
+                              </>
+                            ) : (
+                              <>
+                                <option value="A">End-Gruppe A</option>
+                                <option value="B">End-Gruppe B</option>
+                              </>
+                            )}
+                          </select>
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -1597,8 +1637,12 @@ const TennisChampionship = () => {
                       >
                         <option value="-">Wählen Sie ein Match...</option>
                         {getAvailableMatches(
-                          newMatch.phase, 
-                          newMatch.phase === 'group' ? newMatch.group : newMatch.koGroup
+                          newMatch.phase,
+                          newMatch.phase === 'group'
+                            ? newMatch.group
+                            : newMatch.phase === 'semifinal'
+                            ? newMatch.koGroup
+                            : null
                         ).map(([p1, p2, played], index) => (
                           <option key={index} value={`${p1}-${p2}`}>
                             {p1} vs {p2} {played && isAdminMode ? '⚠️ (bereits gespielt!)' : ''}
