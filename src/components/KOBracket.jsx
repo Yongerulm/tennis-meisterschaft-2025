@@ -154,6 +154,18 @@ const KOBracket = ({ phase, title, koGroups, qualifiedPlayers, matches }) => {
         <div className="text-center py-6">
           {renderMatch('Finale - Platz 1', finalPair, finalMatch)}
           {renderMatch('Spiel um Platz 3', thirdPair, thirdMatch)}
+
+          {finalMatch && thirdMatch && (
+            <div className="mt-6 text-left inline-block">
+              <h4 className="text-sm font-medium text-gray-700 mb-2 text-center">Endplatzierungen</h4>
+              <ul className="text-sm text-gray-800 space-y-1">
+                <li>1. {finalMatch.winner}</li>
+                <li>2. {finalMatch.winner === finalMatch.player1 ? finalMatch.player2 : finalMatch.player1}</li>
+                <li>3. {thirdMatch.winner}</li>
+                <li>4. {thirdMatch.winner === thirdMatch.player1 ? thirdMatch.player2 : thirdMatch.player1}</li>
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     );
