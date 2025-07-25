@@ -72,6 +72,79 @@ const KOBracket = ({ phase, title, koGroups, qualifiedPlayers, matches }) => {
       );
     }
 
+    const finalPair = [koGroupA[0].name, koGroupB[0].name];
+    const thirdPair = [koGroupA[1].name, koGroupB[1].name];
+
+    const findMatch = (p1, p2) =>
+      matches.find(
+        (m) =>
+          m.phase === 'final' &&
+          ((m.player1 === p1 && m.player2 === p2) ||
+            (m.player1 === p2 && m.player2 === p1))
+      );
+
+    const finalMatch = findMatch(finalPair[0], finalPair[1]);
+    const thirdMatch = findMatch(thirdPair[0], thirdPair[1]);
+
+    const renderMatch = (titleText, pair, match) => {
+      const isCompleted = match && match.status === 'completed';
+      return (
+        <div className="mb-6">
+          <h4 className="text-sm font-medium text-gray-700 mb-2">{titleText}</h4>
+          <div
+            className={`p-3 rounded-lg border transition-all duration-200 ${
+              isCompleted ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="font-medium text-gray-800 mb-1">
+                  {pair[0]} vs {pair[1]}
+                </div>
+                {isCompleted && match.set1 && (
+                  <div className="text-sm text-gray-600">
+                    <div className="flex flex-wrap items-center gap-2 md:gap-4">
+                      <span className="flex items-center space-x-1">
+                        <span className="text-xs text-gray-500">Satz 1:</span>
+                        <span className="font-mono font-medium">
+                          {match.set1.player1}:{match.set1.player2}
+                        </span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <span className="text-xs text-gray-500">Satz 2:</span>
+                        <span className="font-mono font-medium">
+                          {match.set2.player1}:{match.set2.player2}
+                        </span>
+                      </span>
+                      {match.tiebreak && (
+                        <span className="flex items-center space-x-1">
+                          <span className="text-xs text-gray-500">TB:</span>
+                          <span className="font-mono font-medium">
+                            {match.tiebreak.player1}:{match.tiebreak.player2}
+                          </span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1 flex items-center">
+                      <Trophy className="w-3 h-3 text-yellow-500 mr-1" />
+                      <span className="text-xs font-medium text-gray-700">Sieger: {match.winner}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <span
+                className={`px-2 md:px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ml-3 ${
+                  isCompleted ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                }`}
+              >
+                {isCompleted ? 'Gespielt' : 'Ausstehend'}
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     return (
       <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-6 hover:shadow-2xl hover:border-blue-200 transition-all duration-300">
         <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
@@ -79,17 +152,8 @@ const KOBracket = ({ phase, title, koGroups, qualifiedPlayers, matches }) => {
           {title}
         </h3>
         <div className="text-center py-6">
-          <p className="text-gray-600 mb-4">Die Top 2 aus jeder End-Gruppe spielen im Finale</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {finalists.slice(0, 4).map((player, index) => (
-              <div key={index} className="bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-300 rounded-lg p-4">
-                <div className="font-semibold text-gray-800">{player.name}</div>
-                <div className="text-sm text-gray-600">
-                  End-Gruppe {index < 2 ? 'A' : 'B'} - Platz {(index % 2) + 1}
-                </div>
-              </div>
-            ))}
-          </div>
+          {renderMatch('Finale - Platz 1', finalPair, finalMatch)}
+          {renderMatch('Spiel um Platz 3', thirdPair, thirdMatch)}
         </div>
       </div>
     );
